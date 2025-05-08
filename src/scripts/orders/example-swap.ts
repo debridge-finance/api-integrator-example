@@ -1,5 +1,8 @@
 /**
  * A flattened script showcasing everything needed to complete a swap between Polygon and Arbitrum.
+ * 
+ * The script covers several steps needed to complete a swap between Polygon and Arbitrum, 
+ * along with the demonstration of how to call the approve on ERC-20 tokens.
  */
 
 import 'dotenv/config';
