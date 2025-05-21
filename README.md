@@ -17,8 +17,11 @@ The prerequisites for running it are:
 There are several environment variables you need to set in the `.env.` file:
 ```bash
 SIGNER_PK="0x......"
+SOL_PK="..."
 POLYGON_RPC_URL="https://polygon-mainnet.g.alchemy.com/v2/<api_key>"
+BNB_RPC_URL="https://bnb-mainnet.g.alchemy.com/v2/<api_key>"
 ARB_RPC_URL="https://arb-mainnet.g.alchemy.com/v2/<api_key>"
+SOL_RPC_URL="https://solana-mainnet.g.alchemy.com/v2/<api_key>"
 ```
 
 ## Installing Dependencies
