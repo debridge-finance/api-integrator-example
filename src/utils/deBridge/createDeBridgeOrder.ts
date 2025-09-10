@@ -33,13 +33,20 @@ export async function createDebridgeBridgeOrder(
     srcChainOrderAuthorityAddress: params.srcChainOrderAuthorityAddress || params.account, // Sender's address as fallback
     srcChainRefundAddress: params.account, // Always use sender's address
     dstChainOrderAuthorityAddress: params.dstChainOrderAuthorityAddress || params.dstChainTokenOutRecipient, // Recipient's address as fallback
-    referralCode: "31805", // Damir's work address referral code
+    referralCode: params.referralCode ? params.referralCode.toString() : "31805", // Damir's work address referral code
     // deBridgeApp: "", 
     prependOperatingExpenses: "true", // Always true
     // NOTE: Both the affiliateFeePercent and affiliateFeeRecipient must be set if you're using one
-    // affiliateFeePercent: (params.affiliateFeePercent || 0).toString(),
-    // affiliateFeeRecipient: params.affiliateFeePercent ? "0x55A8f5cce1d53D9Ff84EC0962882b447E5914dB8" : "" // Damir's work address
+    affiliateFeePercent: (params.affiliateFeePercent || 0).toString(),
+    affiliateFeeRecipient: params.affiliateFeeRecipient ? params.affiliateFeeRecipient : "0x55A8f5cce1d53D9Ff84EC0962882b447E5914dB8" // Damir's work address
   });
+
+  if (queryParams.get("affiliateFeePercent") === "0" || !queryParams.get("affiliateFeeRecipient")) {
+    queryParams.delete("affiliateFeePercent");
+    queryParams.delete("affiliateFeeRecipient");
+  }
+
+  console.log("URL**********",`${DEBRIDGE_API}/dln/order/create-tx?${queryParams}`);
 
   const response = await fetch(
     `${DEBRIDGE_API}/dln/order/create-tx?${queryParams}`,
