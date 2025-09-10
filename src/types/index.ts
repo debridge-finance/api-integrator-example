@@ -56,6 +56,7 @@ export interface deBridgeQuoteResponse {
 }
 
 export interface deBridgeOrderInput {
+  accessToken?: string;
   srcChainId: string;
   srcChainTokenIn: string;
   srcChainTokenInAmount: string;
@@ -73,6 +74,7 @@ export interface deBridgeOrderInput {
   srcAllowedCancelBeneficiary?: string;
   referralCode?: number;
   affiliateFeePercent?: number;
+  affiliateFeeRecipient?: string;
   srcChainOrderAuthorityAddress?: string;
   srcChainRefundAddress?: string;
   dstChainOrderAuthorityAddress?: string;
