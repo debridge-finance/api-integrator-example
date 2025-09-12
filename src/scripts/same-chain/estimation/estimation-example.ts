@@ -1,17 +1,9 @@
 import 'dotenv/config';
 import {
   ethers,
-  Wallet,
-  Contract,
-  formatUnits,
-  TransactionResponse,
-  TransactionReceipt, 
-  TransactionRequest
-} from "ethers";
-import { SameChainSwapEstimateInput, SameChainSwapInput } from '../../../types';
-import { erc20Abi } from '../../../constants';
+  Wallet} from "ethers";
+import { SameChainSwapEstimateInput } from '../../../types';
 import { getEnvConfig, getJsonRpcProviders } from '../../../utils';
-import { createDeBridgeSameChainSwap } from '../../../utils/deBridge/sameChainSwap';
 import { createDeBridgeSameChainSwapEstimate } from '../../../utils/deBridge/sameChainSwapEstimate';
 
 async function main() {
