@@ -29,7 +29,7 @@ async function main() {
 
   const orderInput: deBridgeOrderInput = {
     srcChainId: '100000026',
-    srcChainTokenIn: TRX_SENTINEL,               // required by your API for native TRX
+    srcChainTokenIn: TRX_SENTINEL, 
     srcChainTokenInAmount: String(amountSun),
     dstChainId: '7565164',
     dstChainTokenOut: '11111111111111111111111111111111',
@@ -67,7 +67,6 @@ async function main() {
 
   const signedTransaction = await tronWeb.trx.sign(unsignedTransaction.transaction, privateKey);
 
-  // Send it. We get the tx immediately because the Tron API is used
   const receipt = await tronWeb.trx.sendRawTransaction(signedTransaction);
 
   console.log(receipt);
