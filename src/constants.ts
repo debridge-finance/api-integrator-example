@@ -1,6 +1,8 @@
 import { InterfaceAbi } from "ethers";
 
-export const DEBRIDGE_API = "https://dln.debridge.finance/v1.0"
+// This is the official API - please do not use the alternative URLs.
+export const DEBRIDGE_API = "https://dln.debridge.finance/v1.0" 
+
 export const erc20Abi: InterfaceAbi = [
   // Read-Only Functions
   "function balanceOf(address owner) view returns (uint256)",
