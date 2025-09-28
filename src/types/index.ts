@@ -56,7 +56,7 @@ export interface deBridgeQuoteResponse {
 }
 
 export interface deBridgeOrderInput {
-  accessToken?: string;
+  accessToken?: string; // Optional access token for API authentication
   srcChainId: string;
   srcChainTokenIn: string;
   srcChainTokenInAmount: string;
