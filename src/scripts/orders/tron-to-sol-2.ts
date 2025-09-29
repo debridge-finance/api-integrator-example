@@ -39,8 +39,8 @@ async function main() {
   const senderHex41 = tronWeb.address.toHex(senderBase58);
 
   // --- Current balance ---
-  const preBalSun = await tronWeb.trx.getBalance(senderBase58);
-  const preBalTRX = preBalSun / 1e6;
+  const balanceSun = await tronWeb.trx.getBalance(senderBase58);
+  const balanceTrx = balanceSun / 1e6;
 
   // --- Bridge parameters ---
   const TRX_SENTINEL = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";
@@ -83,11 +83,11 @@ async function main() {
     "post"
   )) as TronTriggerConstantContractResponse;
 
-  const simOk = sim?.result?.result === true;
-  console.log("Simulation:", simOk ? "ok" : "failed");
+  const simulationOk = sim?.result?.result === true; // Check if the simulation executed successfully 
+  console.log("Simulation:", simulationOk ? "ok" : "failed");
   console.log("Simulation energy_used:", sim?.energy_used ?? "n/a");
 
-  if (!simOk) {
+  if (!simulationOk) {
     const revertUtf8 = hexToUtf8(sim?.result?.message);
     if (sim?.result?.message) console.log("Revert(hex):", sim.result.message);
     if (revertUtf8) console.log("Revert(utf8):", revertUtf8);
@@ -95,26 +95,26 @@ async function main() {
   }
 
   // --- Balance precheck ---
-  const gasLimitBasis = sim.energy_used ?? Number(order?.estimatedTransactionFee?.details?.gasLimit ?? 500_000);
-  const gasPriceSun = Number(order?.estimatedTransactionFee?.details?.gasPrice ?? 420);
-  const bufferPct = 1.3;
-  const feeLimit = Math.max(Math.ceil(gasLimitBasis * gasPriceSun * bufferPct), 50_000_000);
+  const estimatedEnergy = sim.energy_used ?? Number(order?.estimatedTransactionFee?.details?.gasLimit ?? 500_000);
+  const energyPriceSun = Number(order?.estimatedTransactionFee?.details?.gasPrice ?? 420);
+  const feeBufferFactor = 1.3;
+  const feeLimit = Math.max(Math.ceil(estimatedEnergy * energyPriceSun * feeBufferFactor), 50_000_000);
 
   const callValueSun = Number(order.tx.value);
   const totalRequiredSun = callValueSun + feeLimit;
 
   console.log("=== Balance precheck ===");
-  console.log("Current balance (TRX):", preBalTRX.toFixed(6));
+  console.log("Current balance (TRX):", balanceTrx.toFixed(6));
   console.log("callValue (TRX):      ", (callValueSun / 1e6).toFixed(6));
   console.log(
     "feeLimit (TRX):       ",
     (feeLimit / 1e6).toFixed(6),
-    `(energy=${gasLimitBasis}, gasPrice=${gasPriceSun} SUN, buffer=${Math.round((bufferPct - 1) * 100)}%)`
+    `(energy=${estimatedEnergy}, gasPrice=${energyPriceSun} SUN, buffer=${Math.round((feeBufferFactor - 1) * 100)}%)`
   );
   console.log("total required (TRX): ", (totalRequiredSun / 1e6).toFixed(6));
 
-  if (preBalSun < totalRequiredSun) {
-    const missing = (totalRequiredSun - preBalSun) / 1e6;
+  if (balanceSun < totalRequiredSun) {
+    const missing = (totalRequiredSun - balanceSun) / 1e6;
     throw new Error(`Insufficient balance. Missing ~${missing.toFixed(6)} TRX`);
   } else {
     console.log("Sufficient balance detected");
@@ -122,16 +122,15 @@ async function main() {
 
   // --- REAL TX (still commented) ---
   
-  const inputData = order.tx.data.startsWith("0x") ? order.tx.data.slice(2) : order.tx.data;
-  const to41Format = order.tx.to.replace(/^0x/, "41");
+  const callDataHexNo0x = order.tx.data.startsWith("0x") ? order.tx.data.slice(2) : order.tx.data;
   const signerHex41Maybe = tronWeb.defaultAddress.hex;
   if (!signerHex41Maybe) throw new Error("Failed to read defaultAddress.hex");
   const signerHex41: string = signerHex41Maybe;
 
   const unsigned = await tronWeb.transactionBuilder.triggerSmartContract(
-    to41Format,
+    contractHex41,
     "",
-    { callValue: callValueSun, input: inputData, feeLimit },
+    { callValue: callValueSun, input: callDataHexNo0x, feeLimit },
     [],
     signerHex41
   );
