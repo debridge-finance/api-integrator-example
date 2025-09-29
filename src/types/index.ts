@@ -196,3 +196,71 @@ export const getDebridgeTokensInfoSchema = z.object({
 export type GetDebridgeTokensInfoParams = z.infer<
   typeof getDebridgeTokensInfoSchema
 >;
+
+export type SameChainSwapEstimateInput = {
+  chainId: string; // e.g. '137' for Polygon
+  tokenIn: string; // e.g. USDC address
+  tokenInAmount: string; // e.g. amount in smallest unit
+  tokenOut: string; // e.g. MATIC address (native token)
+  slippage?: string; // e.g. "auto" to let API determine
+  affiliateFeePercent?: number; // e.g. 0 for no fee
+  affiliateFeeRecipient?: string; // e.g. address to receive fee
+  senderAddress?: string; // e.g. the sender's address
+  srcChainPriorityLevel?: "normal" | "aggressive";
+}
+
+export type SameChainSwapInput = SameChainSwapEstimateInput & {
+  tokenOutRecipient: string; // e.g. recipient address
+  senderAddress?: string; // e.g. the sender's address
+  srcChainPriorityLevel?: "normal" | "aggressive";
+  referralCode?: number; 
+}
+
+export type DeBridgeTransaction = {
+  data: string,
+  to?: string, // Only present for EVM chains
+  value?: string // Only present for EVM chains
+}
+
+export type DeBridgeSameChainSwapEstimate = {
+  tokenIn: {
+    address: string,
+    name: string,
+    symbol: string,
+    decimals: number,
+    amount: string
+  },
+  tokenOut: {
+    address: string,
+    name: string,
+    symbol: string,
+    decimals: number,
+    amount: string,
+    minAmount: string
+  },
+  slippage: number,
+  recommendedSlippage: number,
+  estimatedTransactionFee: {
+    total: string,
+    details: {
+      giveOrderState: string,
+      giveOrderWallet: string,
+      nonceMaster: string,
+      txFee: string,
+      priorityFee: string,
+      gasLimit: string,
+      gasPrice: string,
+      baseFee: string,
+      maxFeePerGas: string,
+      maxPriorityFeePerGas: string
+    }
+  },
+}
+
+export type SameChainSwapResponse = DeBridgeSameChainSwapEstimate & {
+  tx: DeBridgeTransaction
+}
+
+export type SameChainSwapEstimateResponse = {
+  estimation: DeBridgeSameChainSwapEstimate
+}
