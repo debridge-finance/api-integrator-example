@@ -213,6 +213,7 @@ export type SameChainSwapInput = SameChainSwapEstimateInput & {
   tokenOutRecipient: string; // e.g. recipient address
   senderAddress?: string; // e.g. the sender's address
   srcChainPriorityLevel?: "normal" | "aggressive";
+  referralCode?: number; 
 }
 
 export type DeBridgeTransaction = {
