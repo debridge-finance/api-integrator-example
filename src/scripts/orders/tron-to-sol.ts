@@ -1,82 +1,168 @@
-import 'dotenv/config';
-import * as TronWebNS from 'tronweb';
-import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOrder';
-import { deBridgeOrderInput } from '../../types';
+import "dotenv/config";
+import * as TronWebNS from "tronweb";
+import { createDebridgeBridgeOrder } from "../../utils/deBridge/createDeBridgeOrder";
+import { deBridgeOrderInput } from "../../types";
 
-async function main() {
-  // --- ENV: TRON_RPC_URL must be https://api.trongrid.io --- 
-  const privateKey = process.env.SIGNER_PK!;
-  const tronFullnode = process.env.TRON_RPC_URL!;
-  const tronGridKey = process.env.TRONGRID_API_KEY; // optional
-
-  if (!privateKey || !tronFullnode) {
-    throw new Error('Missing env: SIGNER_PK and TRON_RPC_URL are required.');
-  }
-
-  const tronWeb = new TronWebNS.TronWeb({
-    fullHost: tronFullnode,
-    headers: tronGridKey ? { 'TRON-PRO-API-KEY': tronGridKey } : undefined,
-    privateKey,
-  });
-
-  const senderBase58 = tronWeb.defaultAddress.base58;
-  const senderHex41 = tronWeb.defaultAddress.hex;
-  console.log(`Sender: ${senderBase58} (${senderHex41})`);
-
-  // === Build order for native TRX (sentinel T9yD14...) ===
-  const TRX_SENTINEL = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
-  const amountSun = 20 * 1e6; // 2 TRX
-
-  const orderInput: deBridgeOrderInput = {
-    srcChainId: '100000026',
-    srcChainTokenIn: TRX_SENTINEL, 
-    srcChainTokenInAmount: String(amountSun),
-    dstChainId: '7565164',
-    dstChainTokenOut: '11111111111111111111111111111111',
-    dstChainTokenOutRecipient: '862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs',
-    account: senderBase58.toString(),
-    srcChainOrderAuthorityAddress: senderBase58.toString(),
-    dstChainOrderAuthorityAddress: '862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs',
-  };
-
-  const preBal = await tronWeb.trx.getBalance(senderBase58);
-  console.log(`\nPre-tx TRX balance: ${(preBal / 1e6).toFixed(6)} TRX`);
-
-  const order = await createDebridgeBridgeOrder(orderInput);
-  if (!order?.tx?.to) throw new Error('Invalid order: missing tx.to');
-  if (!order?.tx?.data || order.tx.data.length < 10) {
-    // If there’s no calldata, this should be a pure native transfer; you can use sendTransaction.
-    throw new Error('Order tx.data missing/too short for a contract call on Tron.');
-  }
-  if (!order?.tx?.value) throw new Error('Invalid order: missing tx.value');
-
-  const feeLimit = 2000000; // 2 million SUN
-  const inputData = order.tx.data.startsWith('0x') ? order.tx.data.substring(2) : order.tx.data;
-
-  const unsignedTransaction = await tronWeb.transactionBuilder.triggerSmartContract(
-    order.tx.to.replace(/^0x/, '41'), // 21 byte format (prefix + address)
-    '', // Omit - the calldata is passed in the data field,
-    {
-      callValue: Number(order.tx.value || 0), // in SUN
-      input: inputData,
-      feeLimit
-    },
-    [], // empty parameters array
-    tronWeb.address.fromPrivateKey(privateKey) || "" // signer
-  );
-
-  const signedTransaction = await tronWeb.trx.sign(unsignedTransaction.transaction, privateKey);
-
-  const receipt = await tronWeb.trx.sendRawTransaction(signedTransaction);
-
-  console.log(receipt);
-
-  const postBal = await tronWeb.trx.getBalance(senderBase58);
-  console.log(`\nPost-tx TRX balance: ${(postBal / 1e6).toFixed(6)} TRX`);
-  console.log('\n--- Done ---');
+interface TronTriggerConstantContractResponse {
+	result?: { result?: boolean; message?: string };
+	constant_result?: string[];
+	logs?: unknown[];
+	energy_used?: number;
+	energy_penalty?: number;
+	transaction?: { txID?: string };
 }
 
-main().catch((e) => {
-  console.error('\n🚨 FATAL ERROR:', e);
-  process.exitCode = 1;
+const hexToUtf8 = (hex?: string) => {
+	if (!hex) return "";
+	const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
+	try {
+		return Buffer.from(clean, "hex").toString("utf8");
+	} catch {
+		return "";
+	}
+};
+
+async function main() {
+	// --- ENV ---
+	const privateKey = process.env.TRON_PK;
+	const tronFullnode = process.env.TRON_RPC_URL || "https://api.trongrid.io";
+	const tronGridKey = process.env.TRONGRID_API_KEY;
+	if (!privateKey || !tronFullnode) {
+		throw new Error("Missing env: TRON_PK and TRON_RPC_URL are required.");
+	}
+
+	const tronWeb = new TronWebNS.TronWeb({
+		fullHost: tronFullnode,
+		headers: tronGridKey ? { "TRON-PRO-API-KEY": tronGridKey } : undefined,
+		privateKey,
+	});
+
+	// --- Signer ---
+	const senderBase58 = tronWeb.defaultAddress.base58;
+	if (!senderBase58)
+		throw new Error("Failed to derive sender address from private key");
+	const senderHex41 = tronWeb.address.toHex(senderBase58);
+
+	// --- Current balance ---
+	const balanceSun = await tronWeb.trx.getBalance(senderBase58);
+	const balanceTrx = balanceSun / 1e6;
+
+	// --- Bridge parameters ---
+	const TRX_SENTINEL = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";
+	const SOL_NATIVE = "11111111111111111111111111111111";
+	const SOLANA_RECIPIENT = "862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs";
+
+	const amountTRX = 5;
+	const amountSun = String(amountTRX * 1e6);
+
+	// --- Create order ---
+	const orderInput: deBridgeOrderInput = {
+		srcChainId: "100000026",
+		srcChainTokenIn: TRX_SENTINEL,
+		srcChainTokenInAmount: amountSun,
+		dstChainId: "7565164",
+		dstChainTokenOut: SOL_NATIVE,
+		dstChainTokenOutRecipient: SOLANA_RECIPIENT,
+		account: senderBase58,
+		srcChainOrderAuthorityAddress: senderBase58,
+		dstChainOrderAuthorityAddress: SOLANA_RECIPIENT,
+	};
+
+	const order: any = await createDebridgeBridgeOrder(orderInput);
+	if (!order?.tx?.to || !order?.tx?.data || !order?.tx?.value) {
+		throw new Error("Invalid order: missing tx.to / tx.data / tx.value");
+	}
+
+	// --- SIMULATION ---
+	const contractHex41 = tronWeb.address.toHex(order.tx.to);
+	const dataNo0x = order.tx.data.startsWith("0x")
+		? order.tx.data.slice(2)
+		: order.tx.data;
+
+	const sim = (await tronWeb.fullNode.request(
+		"wallet/triggerconstantcontract",
+		{
+			owner_address: senderHex41,
+			contract_address: contractHex41,
+			call_value: Number(order.tx.value),
+			data: dataNo0x,
+		},
+		"post",
+	)) as TronTriggerConstantContractResponse;
+
+	const simulationOk = sim?.result?.result === true; // Check if the simulation executed successfully
+	console.log("Simulation:", simulationOk ? "ok" : "failed");
+	console.log("Simulation energy_used:", sim?.energy_used ?? "n/a");
+
+	if (!simulationOk) {
+		const revertUtf8 = hexToUtf8(sim?.result?.message);
+		if (sim?.result?.message) console.log("Revert(hex):", sim.result.message);
+		if (revertUtf8) console.log("Revert(utf8):", revertUtf8);
+		throw new Error("Simulation indicates failure");
+	}
+
+	// --- Balance precheck ---
+	const estimatedEnergy = sim.energy_used;
+	const energyPriceSun = order.estimatedTransactionFee.details.gasPrice;
+	const feeBufferFactor = 1.3;
+	const feeLimit = Math.ceil(
+		estimatedEnergy * energyPriceSun * feeBufferFactor,
+	);
+
+	const callValueSun = Number(order.tx.value);
+	const totalRequiredSun = callValueSun + feeLimit;
+
+	console.log("=== Balance precheck ===");
+	console.log("Current balance (TRX):", balanceTrx.toFixed(6));
+	console.log("callValue (TRX):      ", (callValueSun / 1e6).toFixed(6));
+	console.log(
+		"feeLimit (TRX):       ",
+		(feeLimit / 1e6).toFixed(6),
+		`(energy=${estimatedEnergy}, gasPrice=${energyPriceSun} SUN, buffer=${Math.round((feeBufferFactor - 1) * 100)}%)`,
+	);
+	console.log("total required (TRX): ", (totalRequiredSun / 1e6).toFixed(6));
+
+	if (balanceSun < totalRequiredSun) {
+		const missing = (totalRequiredSun - balanceSun) / 1e6;
+		throw new Error(`Insufficient balance. Missing ~${missing.toFixed(6)} TRX`);
+	} else {
+		console.log("Sufficient balance detected");
+	}
+
+	// --- REAL TX ---
+
+	const callDataHexNo0x = order.tx.data.startsWith("0x")
+		? order.tx.data.slice(2)
+		: order.tx.data;
+	const signerHex41Maybe = tronWeb.defaultAddress.hex;
+	if (!signerHex41Maybe) throw new Error("Failed to read defaultAddress.hex");
+	const signerHex41: string = signerHex41Maybe;
+
+	const unsigned = await tronWeb.transactionBuilder.triggerSmartContract(
+		contractHex41,
+		"",
+		{ callValue: callValueSun, input: callDataHexNo0x, feeLimit },
+		[],
+		signerHex41,
+	);
+
+	if (!unsigned.result?.result) throw new Error("Failed to build transaction");
+	console.log("PreparedTx:", unsigned?.transaction?.txID ?? "n/a");
+
+	const signed = await tronWeb.trx.sign(unsigned.transaction, privateKey);
+	const receipt = await tronWeb.trx.sendRawTransaction(signed);
+
+	if (receipt.code) {
+		const errMsg = tronWeb.toUtf8(receipt.message);
+		throw new Error(`Transaction failed: ${receipt.code}: ${errMsg}`);
+	}
+	if (!receipt.result) throw new Error("Transaction broadcast failed");
+
+	console.log("TX Hash:", receipt.txid);
+	console.log(`TronScan: https://tronscan.org/#/transaction/${receipt.txid}`);
+}
+
+main().catch((err) => {
+	console.error("FATAL ERROR:", err?.message ?? err);
+	process.exitCode = 1;
 });
