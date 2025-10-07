@@ -9,10 +9,12 @@ import {
   TransactionInstruction,
   VersionedTransaction
 } from "@solana/web3.js";
-import { constants, findAssociatedTokenAddress, helpers, spl, txs, programs } from "@debridge-finance/solana-utils";
-import { ChainId, Solana } from "@debridge-finance/dln-client";
+import { constants, findAssociatedTokenAddress, helpers, spl, txs, programs, dlnSrcResolver } from "@debridge-finance/solana-utils";
+import { ChainId } from "@debridge-finance/dln-client";
 import bs58 from "bs58";
 import { getEnvConfig } from "../../utils";
+
+const dlnPdaResolver = dlnSrcResolver(programs.dlnSrc).methods;
 
 interface IOrderFromApi {
   orderId: { stringValue: string; bytesArrayValue: string };
@@ -68,6 +70,28 @@ async function getUnlockedOrders({
   return allOrders;
 }
 
+function buildWithdrawAffiliateFeeIx(orderId: Buffer, beneficiary: PublicKey, tokenMint: PublicKey, tokenProgram?: PublicKey) {
+    const DLN_ADDRESS = new PublicKey(programs.dlnSrc);
+    const discriminator = [143, 79, 158, 208, 125, 51, 86, 85];
+    tokenProgram = tokenProgram ?? new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    const resolver = dlnSrcResolver(DLN_ADDRESS).methods;
+    const [giveState] = resolver.getGiveOrderStateAccount(orderId);
+    const ix = new TransactionInstruction({
+        keys: [
+            {isSigner: true, isWritable: true, pubkey: beneficiary },
+            {isSigner: false, isWritable: true, pubkey: findAssociatedTokenAddress(beneficiary, tokenMint, tokenProgram)[0] },
+            {isSigner: false, isWritable: true, pubkey: giveState},
+            {isSigner: false, isWritable: true, pubkey: resolver.getGiveOrderWalletAddress(orderId)[0]},
+            {isSigner: false, isWritable: false, pubkey: tokenMint },
+            {isSigner: false, isWritable: false, pubkey: tokenProgram },
+        ],
+        programId: DLN_ADDRESS,
+        data: Buffer.concat([Uint8Array.from(discriminator), Uint8Array.from(orderId)]),
+    });
+
+    return ix;
+}
+
 async function getWithdrawAffiliateFeeInstructions(client: Solana.DlnClient, orders: IOrderFromApi[]): Promise<{ instructions: TransactionInstruction[], orderIds: string[] }> {
   const orderIds: string[] = [];
   const instructions: TransactionInstruction[] = [];
@@ -75,7 +99,7 @@ async function getWithdrawAffiliateFeeInstructions(client: Solana.DlnClient, ord
 
   const wallets = orders.map(
     ({ orderId }) =>
-      client.source.accountsResolver.getGiveOrderWalletAddress(Buffer.from(JSON.parse(orderId.bytesArrayValue)))[0],
+      dlnPdaResolver.getGiveOrderWalletAddress(Buffer.from(JSON.parse(orderId.bytesArrayValue)))[0],
   );
 
   for (let i = 0; i < wallets.length; i += 1000) {
@@ -90,16 +114,14 @@ async function getWithdrawAffiliateFeeInstructions(client: Solana.DlnClient, ord
     const account = spl.parseSplAccount(accounts[i]!.data);
 
     if (account?.amount) {
-      const tx = await client.source.withdrawAffiliateFee(
-        order.orderId.stringValue,
-        new PublicKey(order.affiliateFee.beneficiarySrc.stringValue),
-        findAssociatedTokenAddress(
-          new PublicKey(order.affiliateFee.beneficiarySrc.stringValue),
-          new PublicKey(order.giveOfferWithMetadata.tokenAddress.stringValue),
-        )[0],
-      );
-
-      instructions.push(tx.instructions[0]);
+        instructions.push(
+            buildWithdrawAffiliateFeeIx(
+                Buffer.from(JSON.parse(order.orderId.bytesArrayValue)), 
+                new PublicKey(order.affiliateFee.beneficiarySrc.stringValue), 
+                new PublicKey(order.giveOfferWithMetadata.tokenAddress.stringValue),
+                account.owner
+            )
+        )
       orderIds.push(order.orderId.stringValue);
     }
   }
