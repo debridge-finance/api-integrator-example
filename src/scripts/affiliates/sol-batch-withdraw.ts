@@ -68,6 +68,25 @@ async function getUnlockedOrders({
   return allOrders;
 }
 
+function buildWithdrawAffiliateFeeIx(client: Solana.DlnClient, orderId: Buffer, beneficiary: PublicKey, tokenMint: PublicKey, tokenProgram?: PublicKey) {
+    const discriminator = [143, 79, 158, 208, 125, 51, 86, 85];
+    tokenProgram = tokenProgram ?? new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    const ix = new TransactionInstruction({
+        keys: [
+            { isSigner: true, isWritable: true, pubkey: beneficiary },
+            { isSigner: false, isWritable: true, pubkey: findAssociatedTokenAddress(beneficiary, tokenMint, tokenProgram)[0] },
+            { isSigner: false, isWritable: true, pubkey: client.source.accountsResolver.getGiveOrderStateAccount(orderId)[0] },
+            { isSigner: false, isWritable: true, pubkey: client.source.accountsResolver.getGiveOrderWalletAddress(orderId)[0] },
+            { isSigner: false, isWritable: false, pubkey: tokenMint },
+            { isSigner: false, isWritable: false, pubkey: tokenProgram },
+        ],
+        programId: client.source.program.programId,
+        data: Buffer.concat([Uint8Array.from(discriminator), Uint8Array.from(orderId)]),
+    });
+
+    return ix;
+}
+
 async function getWithdrawAffiliateFeeInstructions(client: Solana.DlnClient, orders: IOrderFromApi[]): Promise<{ instructions: TransactionInstruction[], orderIds: string[] }> {
   const orderIds: string[] = [];
   const instructions: TransactionInstruction[] = [];
@@ -87,19 +106,19 @@ async function getWithdrawAffiliateFeeInstructions(client: Solana.DlnClient, ord
   ).flat();
 
   for (const [i, order] of orders.entries()) {
-    const account = spl.parseSplAccount(accounts[i]!.data);
+    const rawAccount = accounts[i]!;
+    const account = spl.parseSplAccount(rawAccount.data);
 
     if (account?.amount) {
-      const tx = await client.source.withdrawAffiliateFee(
-        order.orderId.stringValue,
-        new PublicKey(order.affiliateFee.beneficiarySrc.stringValue),
-        findAssociatedTokenAddress(
-          new PublicKey(order.affiliateFee.beneficiarySrc.stringValue),
-          new PublicKey(order.giveOfferWithMetadata.tokenAddress.stringValue),
-        )[0],
-      );
-
-      instructions.push(tx.instructions[0]);
+        instructions.push(
+            buildWithdrawAffiliateFeeIx(
+                client,
+                Buffer.from(JSON.parse(order.orderId.bytesArrayValue)), 
+                new PublicKey(order.affiliateFee.beneficiarySrc.stringValue), 
+                new PublicKey(order.giveOfferWithMetadata.tokenAddress.stringValue),
+                rawAccount.owner
+            )
+        )
       orderIds.push(order.orderId.stringValue);
     }
   }
