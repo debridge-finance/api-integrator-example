@@ -106,7 +106,8 @@ async function getWithdrawAffiliateFeeInstructions(client: Solana.DlnClient, ord
   ).flat();
 
   for (const [i, order] of orders.entries()) {
-    const account = spl.parseSplAccount(accounts[i]!.data);
+    const rawAccount = accounts[i]!;
+    const account = spl.parseSplAccount(rawAccount.data);
 
     if (account?.amount) {
         instructions.push(
@@ -115,7 +116,7 @@ async function getWithdrawAffiliateFeeInstructions(client: Solana.DlnClient, ord
                 Buffer.from(JSON.parse(order.orderId.bytesArrayValue)), 
                 new PublicKey(order.affiliateFee.beneficiarySrc.stringValue), 
                 new PublicKey(order.giveOfferWithMetadata.tokenAddress.stringValue),
-                account.owner
+                rawAccount.owner
             )
         )
       orderIds.push(order.orderId.stringValue);
