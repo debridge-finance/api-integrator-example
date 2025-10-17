@@ -1,46 +1,31 @@
 import "dotenv/config";
-import * as TronWebNS from "tronweb";
 import { createDebridgeBridgeOrder } from "../../utils/deBridge/createDeBridgeOrder";
 import { deBridgeOrderInput } from "../../types";
-
-interface TronTriggerConstantContractResponse {
-	result?: { result?: boolean; message?: string };
-	constant_result?: string[];
-	logs?: unknown[];
-	energy_used?: number;
-	energy_penalty?: number;
-	transaction?: { txID?: string };
-}
-
-const hexToUtf8 = (hex?: string) => {
-	if (!hex) return "";
-	const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
-	try {
-		return Buffer.from(clean, "hex").toString("utf8");
-	} catch {
-		return "";
-	}
-};
+import { getEnvConfig } from "../../utils";
+import {
+	initTronWeb,
+	simulateTriggerContract,
+	clipHexPrefix,
+	calcFeeLimit,
+	toTronHex41,
+	checkTronTransactionReceipt,
+} from "../../utils/tron";
 
 async function main() {
 	// --- ENV ---
-	const privateKey = process.env.TRON_PK;
-	const tronFullnode = process.env.TRON_RPC_URL || "https://api.trongrid.io";
-	const tronGridKey = process.env.TRONGRID_API_KEY;
-	if (!privateKey || !tronFullnode) {
-		throw new Error("Missing env: TRON_PK and TRON_RPC_URL are required.");
-	}
+	const { tronPrivateKey, tronRpcUrl, tronGridApiKey } = getEnvConfig();
 
-	const tronWeb = new TronWebNS.TronWeb({
-		fullHost: tronFullnode,
-		headers: tronGridKey ? { "TRON-PRO-API-KEY": tronGridKey } : undefined,
-		privateKey,
+	const tronWeb = initTronWeb({
+		privateKey: tronPrivateKey,
+		rpcUrl: tronRpcUrl,
+		apiKey: tronGridApiKey,
 	});
 
 	// --- Signer ---
 	const senderBase58 = tronWeb.defaultAddress.base58;
-	if (!senderBase58)
+	if (!senderBase58) {
 		throw new Error("Failed to derive sender address from private key");
+	}
 	const senderHex41 = tronWeb.address.toHex(senderBase58);
 
 	// --- Current balance ---
@@ -74,40 +59,23 @@ async function main() {
 	}
 
 	// --- SIMULATION ---
-	const contractHex41 = tronWeb.address.toHex(order.tx.to);
-	const dataNo0x = order.tx.data.startsWith("0x")
-		? order.tx.data.slice(2)
-		: order.tx.data;
+	const sim = await simulateTriggerContract(tronWeb, {
+		ownerAddress: senderBase58,
+		contractAddress: order.tx.to,
+		callValue: Number(order.tx.value),
+		data: order.tx.data,
+		label: "bridge",
+	});
 
-	const sim = (await tronWeb.fullNode.request(
-		"wallet/triggerconstantcontract",
-		{
-			owner_address: senderHex41,
-			contract_address: contractHex41,
-			call_value: Number(order.tx.value),
-			data: dataNo0x,
-		},
-		"post",
-	)) as TronTriggerConstantContractResponse;
-
-	const simulationOk = sim?.result?.result === true; // Check if the simulation executed successfully
-	console.log("Simulation:", simulationOk ? "ok" : "failed");
-	console.log("Simulation energy_used:", sim?.energy_used ?? "n/a");
-
-	if (!simulationOk) {
-		const revertUtf8 = hexToUtf8(sim?.result?.message);
-		if (sim?.result?.message) console.log("Revert(hex):", sim.result.message);
-		if (revertUtf8) console.log("Revert(utf8):", revertUtf8);
-		throw new Error("Simulation indicates failure");
+	if (!sim.ok) {
+		throw new Error(`Simulation failed: ${sim.error}`);
 	}
 
 	// --- Balance precheck ---
-	const estimatedEnergy = sim.energy_used;
+	const estimatedEnergy = sim.energyUsed ?? 0;
 	const energyPriceSun = order.estimatedTransactionFee.details.gasPrice;
 	const feeBufferFactor = 1.3;
-	const feeLimit = Math.ceil(
-		estimatedEnergy * energyPriceSun * feeBufferFactor,
-	);
+	const feeLimit = calcFeeLimit(estimatedEnergy, energyPriceSun, feeBufferFactor);
 
 	const callValueSun = Number(order.tx.value);
 	const totalRequiredSun = callValueSun + feeLimit;
@@ -130,13 +98,13 @@ async function main() {
 	}
 
 	// --- REAL TX ---
-
-	const callDataHexNo0x = order.tx.data.startsWith("0x")
-		? order.tx.data.slice(2)
-		: order.tx.data;
+	const callDataHexNo0x = clipHexPrefix(order.tx.data);
 	const signerHex41Maybe = tronWeb.defaultAddress.hex;
-	if (!signerHex41Maybe) throw new Error("Failed to read defaultAddress.hex");
+	if (!signerHex41Maybe) {
+		throw new Error("Failed to read defaultAddress.hex");
+	}
 	const signerHex41: string = signerHex41Maybe;
+	const contractHex41 = toTronHex41(tronWeb, order.tx.to);
 
 	const unsigned = await tronWeb.transactionBuilder.triggerSmartContract(
 		contractHex41,
@@ -146,17 +114,18 @@ async function main() {
 		signerHex41,
 	);
 
-	if (!unsigned.result?.result) throw new Error("Failed to build transaction");
+	if (!unsigned.result?.result) {
+		throw new Error("Failed to build transaction");
+	}
 	console.log("PreparedTx:", unsigned?.transaction?.txID ?? "n/a");
 
-	const signed = await tronWeb.trx.sign(unsigned.transaction, privateKey);
+	const signed = await tronWeb.trx.sign(unsigned.transaction, tronPrivateKey);
 	const receipt = await tronWeb.trx.sendRawTransaction(signed);
 
-	if (receipt.code) {
-		const errMsg = tronWeb.toUtf8(receipt.message);
-		throw new Error(`Transaction failed: ${receipt.code}: ${errMsg}`);
+	const receiptCheck = checkTronTransactionReceipt(receipt);
+	if (!receiptCheck.success) {
+		throw new Error(receiptCheck.error);
 	}
-	if (!receipt.result) throw new Error("Transaction broadcast failed");
 
 	console.log("TX Hash:", receipt.txid);
 	console.log(`TronScan: https://tronscan.org/#/transaction/${receipt.txid}`);
