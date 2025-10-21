@@ -40,6 +40,9 @@ export function getEnvConfig() {
   const bnbRpcUrl = process.env.BNB_RPC_URL;
   const solRpcUrl = process.env.SOL_RPC_URL;
   const solPrivateKey = process.env.SOL_PK;
+  const tronPrivateKey = process.env.TRON_PK;
+  const tronRpcUrl = process.env.TRON_RPC_URL;
+  const tronGridApiKey = process.env.TRONGRID_API_KEY;
 
   let error = ""
 
@@ -61,6 +64,12 @@ export function getEnvConfig() {
   if (!solPrivateKey) {
     error += "\nSOL_PK not found in .env file.";
   }
+  if (!tronPrivateKey) {
+    error += "\nTRON_PK not found in .env file.";
+  }
+  if (!tronRpcUrl) {
+    error += "\nTRON_RPC_URL not found in .env file.";
+  }
 
   if (error !== "") {
     throw new Error(`Invalid configuration. ${error}`);
@@ -72,7 +81,10 @@ export function getEnvConfig() {
     polygonRpcUrl,
     arbRpcUrl,
     bnbRpcUrl,
-    solRpcUrl
+    solRpcUrl,
+    tronPrivateKey,
+    tronRpcUrl,
+    tronGridApiKey
   }
 }
 
