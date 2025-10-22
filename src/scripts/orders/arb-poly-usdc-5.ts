@@ -43,7 +43,6 @@ async function main() {
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
     dstChainOrderAuthorityAddress: wallet.address,
-    referralCode: 32067 // Ranger referral code 
   };
 
   console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));
