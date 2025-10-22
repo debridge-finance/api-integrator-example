@@ -6,6 +6,7 @@ import { SameChainSwapEstimateInput } from '../../../types';
 import { getEnvConfig, getJsonRpcProviders } from '../../../utils';
 import { createDeBridgeSameChainSwapEstimate } from '../../../utils/deBridge/sameChainSwapEstimate';
 import { EVM_NATIVE_TOKEN, USDC } from '../../../utils/tokens';
+import { CHAIN_IDS } from '../../../utils/chains';
 
 async function main() {
   const { privateKey } = getEnvConfig();
@@ -25,7 +26,7 @@ async function main() {
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const sameChainSwapEstimateInput: SameChainSwapEstimateInput = {
-    chainId: "137",
+    chainId: CHAIN_IDS.Polygon.toString(),
     tokenIn: USDC.POLYGON,
     tokenInAmount: amountInAtomicUnit.toString(),
     tokenOut: EVM_NATIVE_TOKEN.address,

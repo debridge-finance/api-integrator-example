@@ -14,6 +14,7 @@ import { delay } from '../../utils';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { USDC } from '../../utils/tokens';
+import { CHAIN_IDS } from '../../utils/chains';
 
 /**
  * This script demonstrates how to get an estimate, then create a deBridge order.
@@ -40,10 +41,10 @@ async function main() {
 
   // Estimate mode - no authority addresses
   const estimateInput: deBridgeOrderInput = {
-    srcChainId: '137',
+    srcChainId: CHAIN_IDS.Polygon.toString(),
     srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '56',
+    dstChainId: CHAIN_IDS.BNB.toString(),
     dstChainTokenOut: USDC.BNB,
     dstChainTokenOutRecipient: wallet.address,
     account: wallet.address

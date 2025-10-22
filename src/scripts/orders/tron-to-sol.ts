@@ -10,6 +10,8 @@ import {
 	toTronHex41,
 	checkTronTransactionReceipt,
 } from "../../utils/tron";
+import { CHAIN_IDS } from "../../utils/chains";
+import { SOL, TRX } from "../../utils/tokens";
 
 async function main() {
 	// --- ENV ---
@@ -26,15 +28,11 @@ async function main() {
 	if (!senderBase58) {
 		throw new Error("Failed to derive sender address from private key");
 	}
-	const senderHex41 = tronWeb.address.toHex(senderBase58);
-
 	// --- Current balance ---
 	const balanceSun = await tronWeb.trx.getBalance(senderBase58);
 	const balanceTrx = balanceSun / 1e6;
 
 	// --- Bridge parameters ---
-	const TRX_SENTINEL = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";
-	const SOL_NATIVE = "11111111111111111111111111111111";
 	const SOLANA_RECIPIENT = "862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs";
 
 	const amountTRX = 5;
@@ -42,11 +40,11 @@ async function main() {
 
 	// --- Create order ---
 	const orderInput: deBridgeOrderInput = {
-		srcChainId: "100000026",
-		srcChainTokenIn: TRX_SENTINEL,
+		srcChainId: CHAIN_IDS.TRON.toString(),
+		srcChainTokenIn: TRX.sentinel,
 		srcChainTokenInAmount: amountSun,
-		dstChainId: "7565164",
-		dstChainTokenOut: SOL_NATIVE,
+		dstChainId: CHAIN_IDS.Solana.toString(),
+		dstChainTokenOut: SOL.nativeSol,
 		dstChainTokenOutRecipient: SOLANA_RECIPIENT,
 		account: senderBase58,
 		srcChainOrderAuthorityAddress: senderBase58,

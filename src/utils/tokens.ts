@@ -16,3 +16,11 @@ export const USDC = {
   ARBITRUM: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
   BNB: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
 }
+
+export const USDT = {
+  TRON: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+}
+
+export const TRX = {
+  sentinel: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+}

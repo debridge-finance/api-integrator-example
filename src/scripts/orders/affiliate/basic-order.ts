@@ -15,6 +15,7 @@ import { deBridgeOrderInput } from '../../../types';
 import { erc20Abi } from '../../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../../utils';
 import { USDC } from '../../../utils/tokens';
+import { CHAIN_IDS } from '../../../utils/chains';
 
 async function main() {
   const { privateKey } = getEnvConfig();
@@ -36,10 +37,10 @@ async function main() {
   const affiliateFeeRecipient = signer.address;  // Set affiliate fee recipient to the sender's address
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '137',
+    srcChainId: CHAIN_IDS.Polygon.toString(),
     srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '56',
+    dstChainId: CHAIN_IDS.BNB.toString(),
     dstChainTokenOut: USDC.BNB,
     dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,

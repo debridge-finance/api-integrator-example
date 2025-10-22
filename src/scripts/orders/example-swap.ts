@@ -18,6 +18,7 @@ import {
   JsonRpcProvider
 } from "ethers";
 import { USDC } from '../../utils/tokens';
+import { CHAIN_IDS } from '../../utils/chains';
 
 // API endpoint for deBridge operations
 export const DEBRIDGE_API = "https://dln.debridge.finance/v1.0";
@@ -237,10 +238,10 @@ async function main() {
 
   // Construct order parameters
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '137',
+    srcChainId: CHAIN_IDS.Polygon.toString(),
     srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '42161',
+    dstChainId: CHAIN_IDS.Arbitrum.toString(),
     dstChainTokenOut: USDC.ARBITRUM,
     dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,

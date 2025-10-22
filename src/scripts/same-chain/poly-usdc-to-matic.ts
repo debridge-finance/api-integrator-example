@@ -13,6 +13,7 @@ import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { createDeBridgeSameChainSwap } from '../../utils/deBridge/sameChainSwap';
 import { EVM_NATIVE_TOKEN, USDC } from '../../utils/tokens';
+import { CHAIN_IDS } from '../../utils/chains';
 
 async function main() {
   const { privateKey } = getEnvConfig();
@@ -32,7 +33,7 @@ async function main() {
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const sameChainSwapInput: SameChainSwapInput = {
-    chainId: "137",
+    chainId: CHAIN_IDS.Polygon.toString(),
     tokenIn: USDC.POLYGON,
     tokenInAmount: amountInAtomicUnit.toString(),
     tokenOut: EVM_NATIVE_TOKEN.address,

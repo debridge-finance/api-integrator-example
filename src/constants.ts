@@ -66,5 +66,3 @@ export const trc20Abi = [
 export const aavePoolAbi: InterfaceAbi = [
   "function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) public virtual override"
 ]
-export const POLYGON_MAINNET_CHAIN_ID = 137n;
-export const BNB_MAINNET_CHAIN_ID = 56n;

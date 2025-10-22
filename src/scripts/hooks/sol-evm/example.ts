@@ -8,6 +8,7 @@ import { Connection, Keypair } from "@solana/web3.js";
 import { USDC } from '../../../utils/tokens';
 import { generateAaveSupplyCalldata } from '../../../utils/hooks';
 import { prepareSolanaTransaction } from '../../../utils/solana';
+import { CHAIN_IDS } from '../../../utils/chains';
 
 async function main() {
   const { privateKey, solRpcUrl, solPrivateKey } = getEnvConfig();
@@ -30,10 +31,10 @@ async function main() {
   const hookInput: deBridgeHookInput = {
     prependOperatingExpenses: true,
     additionalTakerRewardBps: 0,
-    srcChainId: '7565164',
+    srcChainId: CHAIN_IDS.Solana.toString(),
     srcChainTokenIn: USDC.SOLANA,
     srcChainTokenInAmount: "auto",
-    dstChainId: '137',
+    dstChainId: CHAIN_IDS.Polygon.toString(),
     dstChainTokenOut: USDC.POLYGON,
     dstChainTokenOutAmount: "1000000", // 1 USDC in atomic units
     dstChainTokenOutRecipient: signerPolygon.address,

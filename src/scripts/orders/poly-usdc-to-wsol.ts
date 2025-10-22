@@ -10,6 +10,7 @@ import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOr
 import { deBridgeOrderInput } from '../../types';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { SOL, USDC } from '../../utils/tokens';
+import { CHAIN_IDS } from '../../utils/chains';
 
 async function main() {
   const { privateKey } = getEnvConfig();
@@ -30,10 +31,10 @@ async function main() {
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '137',
+    srcChainId: CHAIN_IDS.Polygon.toString(),
     srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '7565164',
+    dstChainId: CHAIN_IDS.Solana.toString(),
     dstChainTokenOut: SOL.wrappedSol,
     dstChainTokenOutRecipient: solUserAddress,
     account: senderAddress,

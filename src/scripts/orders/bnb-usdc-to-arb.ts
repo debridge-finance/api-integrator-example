@@ -13,6 +13,7 @@ import { deBridgeOrderInput } from '../../types';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { USDC } from '../../utils/tokens';
+import { CHAIN_IDS } from '../../utils/chains';
 
 async function main() {
   const { privateKey } = getEnvConfig();
@@ -32,11 +33,11 @@ async function main() {
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '56', // BNB Chain Id
+    srcChainId: CHAIN_IDS.BNB.toString(),
     srcChainTokenIn: USDC.BNB,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
     dstChainTokenOutAmount: "auto",
-    dstChainId: '42161', // Arbitrum Chain Id
+    dstChainId: CHAIN_IDS.Arbitrum.toString(),
     dstChainTokenOut: USDC.ARBITRUM,
     dstChainTokenOutRecipient: wallet.address,
     account: wallet.address,

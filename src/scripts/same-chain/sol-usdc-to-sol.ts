@@ -11,6 +11,7 @@ import { getEnvConfig } from '../../utils';
 import { createDeBridgeSameChainSwap } from '../../utils/deBridge/sameChainSwap';
 import { SOL, USDC } from '../../utils/tokens';
 import { prepareSolanaTransaction } from '../../utils/solana';
+import { CHAIN_IDS } from '../../utils/chains';
 
 async function main() {
   const { privateKey, solPrivateKey, solRpcUrl } = getEnvConfig();
@@ -30,7 +31,7 @@ async function main() {
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const sameChainSwapInput: SameChainSwapInput = {
-    chainId: '7565164',
+    chainId: CHAIN_IDS.Solana.toString(),
     tokenIn: USDC.SOLANA,
     tokenInAmount: amountInAtomicUnit.toString(),
     tokenOut: SOL.nativeSol,

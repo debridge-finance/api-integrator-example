@@ -11,6 +11,7 @@ import { deBridgeOrderInput } from '../../types';
 import { getEnvConfig, updatePriorityFee } from '../../utils';
 import { EVM_NATIVE_TOKEN, SOL } from '../../utils/tokens';
 import { prepareSolanaTransaction } from '../../utils/solana';
+import { CHAIN_IDS } from '../../utils/chains';
 
 async function main() {
   const { privateKey, solPrivateKey, solRpcUrl } = getEnvConfig();
@@ -34,10 +35,10 @@ async function main() {
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, solDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '7565164',
+    srcChainId: CHAIN_IDS.Solana.toString(),
     srcChainTokenIn: SOL.nativeSol, // SOL native token
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '137',
+    dstChainId: CHAIN_IDS.Polygon.toString(),
     dstChainTokenOut: EVM_NATIVE_TOKEN.address, // Polygon native token
     dstChainTokenOutRecipient: evmUserAddress,
     account: solWallet.publicKey.toBase58(),

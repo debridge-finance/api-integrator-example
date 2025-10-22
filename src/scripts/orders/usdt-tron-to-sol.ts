@@ -14,13 +14,12 @@ import {
 	checkTronTransactionReceipt,
 	simulateTriggerContract,
 } from "../../utils/tron";
+import { CHAIN_IDS } from "../../utils/chains";
+import { SOL, USDT } from "../../utils/tokens";
 
 /** Config */
-const USDT_TRC20_BASE58 = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const BRIDGE_AMOUNT_USDT = 2;
-const SOLANA_CHAIN_ID = "7565164";
-const SOLANA_RECIPIENT = "<Solana Address>"; // put your recipient
-const SOL_NATIVE = "11111111111111111111111111111111";
+const SOLANA_RECIPIENT = "862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs"; // put your recipient
 
 /** MAIN */
 async function main() {
@@ -41,11 +40,11 @@ async function main() {
 
 	// 1) Create order to get mutated amount and tx data
 	const orderInput: deBridgeOrderInput = {
-		srcChainId: "100000026",
-		srcChainTokenIn: USDT_TRC20_BASE58,
+		srcChainId: CHAIN_IDS.TRON.toString(),
+		srcChainTokenIn: USDT.TRON,
 		srcChainTokenInAmount: String(Math.round(BRIDGE_AMOUNT_USDT * 1e6)),
-		dstChainId: SOLANA_CHAIN_ID,
-		dstChainTokenOut: SOL_NATIVE,
+		dstChainId: CHAIN_IDS.Solana.toString(),
+		dstChainTokenOut: SOL.nativeSol,
 		dstChainTokenOutRecipient: SOLANA_RECIPIENT,
 		account: senderBase58,
 		srcChainOrderAuthorityAddress: senderBase58,
@@ -68,21 +67,21 @@ async function main() {
 		: order.tx.to;
 
 	// 2) Ensure USDT balance and allowance (gated by allowance)
-	const usdtBalSun = await getTRC20Balance(tronWeb, USDT_TRC20_BASE58, senderBase58);
+	const usdtBalSun = await getTRC20Balance(tronWeb, USDT.TRON, senderBase58);
 	if (BigInt(usdtBalSun) < BigInt(requiredUsdtSun)) {
 		throw new Error("Insufficient USDT balance");
 	}
 
 	const currentAllowance = await getTRC20Allowance(
 		tronWeb,
-		USDT_TRC20_BASE58,
+		USDT.TRON,
 		senderBase58,
 		debridgeRouterBase58
 	);
 	if (currentAllowance < BigInt(requiredUsdtSun)) {
 		const { tokenHex41: usdtHex41, dataNo0x } = await buildTRC20ApproveCalldata(
 			tronWeb,
-			USDT_TRC20_BASE58,
+			USDT.TRON,
 			senderHex41,
 			debridgeRouterBase58, // spender = deBridge Router
 			requiredUsdtSun
@@ -91,7 +90,7 @@ async function main() {
 		// Simulate approve
 		const simApprove = await simulateTriggerContract(tronWeb, {
 			ownerAddress: senderBase58,
-			contractAddress: USDT_TRC20_BASE58,
+			contractAddress: USDT.TRON,
 			callValue: 0,
 			data: dataNo0x,
 			label: `approve(${Number(requiredUsdtSun) / 1e6} USDT)`,

@@ -14,6 +14,7 @@ import { erc20Abi } from '../../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../../utils';
 import { USDC } from '../../../utils/tokens';
 import { generateAaveSupplyCalldata } from '../../../utils/hooks';
+import { CHAIN_IDS } from '../../../utils/chains';
 
 async function main() {
   const { privateKey } = getEnvConfig();
@@ -36,10 +37,10 @@ async function main() {
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
   const hookCalldata = await generateAaveSupplyCalldata(senderAddress);
   const hookInput: deBridgeHookInput = {
-    srcChainId: '42161',
+    srcChainId: CHAIN_IDS.Arbitrum.toString(),
     srcChainTokenIn: USDC.ARBITRUM,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '137',
+    dstChainId: CHAIN_IDS.Polygon.toString(),
     dstChainTokenOut: USDC.POLYGON,
     dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,
