@@ -17,30 +17,33 @@ import { USDC } from '../../utils/tokens';
 async function main() {
   const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
 
-  const { polygonProvider } = await getJsonRpcProviders({ polygonRpcUrl, arbRpcUrl, bnbRpcUrl });
+  const { arbitrumProvider } = await getJsonRpcProviders({ polygonRpcUrl, arbRpcUrl, bnbRpcUrl });
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);
-  const signer = wallet.connect(polygonProvider);
+  const signer = wallet.connect(arbitrumProvider);
   const senderAddress = await signer.getAddress();
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
+  const polygonUsdcAddress = USDC.POLYGON; 
+  const arbUsdcAddress = USDC.ARBITRUM;
   const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
   const amountToSend = "5"; // The amount of USDC to send
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '137',
-    srcChainTokenIn: USDC.POLYGON,
+    srcChainId: '42161',
+    srcChainTokenIn: arbUsdcAddress,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '42161',
-    dstChainTokenOut: USDC.ARBITRUM,
-    dstChainTokenOutRecipient: "0xe2Dc0A3dEb815f54D32Fa6e9835a906E0FBe4c4c",
+    dstChainId: '137',
+    dstChainTokenOut: polygonUsdcAddress,
+    dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
     dstChainOrderAuthorityAddress: wallet.address,
+    referralCode: 32067 // Ranger referral code 
   };
 
   console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));
@@ -83,7 +86,7 @@ async function main() {
 
       console.log(`Approve transaction sent!`);
       console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
-      console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${approveTxResponse.hash}`);
+      console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${approveTxResponse.hash}`);
       console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
 
       // Wait for the approve transaction to be mined
@@ -98,6 +101,9 @@ async function main() {
     } else {
       console.log("Sufficient allowance already granted. Skipping approve transaction. 👍");
     }
+
+    const nativeBalance: bigint = await arbitrumProvider.getBalance(senderAddress);
+    console.log(`\nCurrent native token balance (Arbitrum): ${formatUnits(nativeBalance, 18)} ETH`);
 
   } catch (error) {
     console.error("\n🚨 Error during token approval process:");
@@ -118,7 +124,7 @@ async function main() {
 
     console.log(`Main transaction sent successfully!`);
     console.log(` --> Transaction Hash: ${txResponse.hash}`);
-    console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${txResponse.hash}`);
+    console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${txResponse.hash}`);
 
     console.log("\nWaiting for main transaction to be mined (awaiting 1 confirmation)...");
     const txReceipt: TransactionReceipt | null = await txResponse.wait();

@@ -9,7 +9,7 @@ import bs58 from 'bs58';
 import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOrder';
 import { deBridgeOrderInput } from '../../types';
 import { getEnvConfig, updatePriorityFee } from '../../utils';
-import { USDC } from '../../utils/tokens';
+import { EVM_NATIVE_TOKEN, SOL } from '../../utils/tokens';
 import { prepareSolanaTransaction } from '../../utils/solana';
 
 async function main() {
@@ -24,21 +24,27 @@ async function main() {
   console.log(`\nEVM address (recipient): ${evmUserAddress}`);
 
   // --- Prepare deBridge Order ---
-  const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical. Solana too. 
-  const amountToSend = "0.2"; // The amount of USDC to send
+  const solDecimals = 9;
+  const amountToSend = "0.01"; // The amount of SOL to send
 
-  const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
+  // Affiliate fee parameters
+  const affiliateFeePercent = 0.1; // 0.1% affiliate fee
+  const affiliateFeeRecipient = "862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs"; // DevRel Solana address
+
+  const amountInAtomicUnit = ethers.parseUnits(amountToSend, solDecimals);
 
   const orderInput: deBridgeOrderInput = {
     srcChainId: '7565164',
-    srcChainTokenIn: USDC.SOLANA,
+    srcChainTokenIn: SOL.nativeSol, // SOL native token
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
     dstChainId: '137',
-    dstChainTokenOut: USDC.POLYGON,
+    dstChainTokenOut: EVM_NATIVE_TOKEN.address, // Polygon native token
     dstChainTokenOutRecipient: evmUserAddress,
     account: solWallet.publicKey.toBase58(),
     srcChainOrderAuthorityAddress: solWallet.publicKey.toBase58(),
     dstChainOrderAuthorityAddress: evmUserAddress,
+    affiliateFeePercent,
+    affiliateFeeRecipient
   };
 
   console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));

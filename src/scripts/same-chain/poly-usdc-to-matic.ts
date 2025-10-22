@@ -12,6 +12,7 @@ import { SameChainSwapInput } from '../../types';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { createDeBridgeSameChainSwap } from '../../utils/deBridge/sameChainSwap';
+import { EVM_NATIVE_TOKEN, USDC } from '../../utils/tokens';
 
 async function main() {
   const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
@@ -25,8 +26,6 @@ async function main() {
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const polygonUsdcAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-  const maticAddress = ethers.ZeroAddress; // Native MATIC token address representation
   const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
   const amountToSend = "0.2"; // The amount of USDC to send
 
@@ -34,9 +33,9 @@ async function main() {
 
   const sameChainSwapInput: SameChainSwapInput = {
     chainId: "137",
-    tokenIn: polygonUsdcAddress,
+    tokenIn: USDC.POLYGON,
     tokenInAmount: amountInAtomicUnit.toString(),
-    tokenOut: maticAddress,
+    tokenOut: EVM_NATIVE_TOKEN.address,
     tokenOutRecipient: senderAddress,
     senderAddress: senderAddress,
   }

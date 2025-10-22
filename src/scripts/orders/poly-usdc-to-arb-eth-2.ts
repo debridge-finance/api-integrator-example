@@ -12,6 +12,7 @@ import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOr
 import { deBridgeOrderInput } from '../../types';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
+import { EVM_NATIVE_TOKEN, USDC } from '../../utils/tokens';
 
 async function main() {
   const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
@@ -25,7 +26,6 @@ async function main() {
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const polygonUsdcAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
   const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
   const amountToSend = "2"; // The amount of USDC to send
 
@@ -33,10 +33,10 @@ async function main() {
 
   const orderInput: deBridgeOrderInput = {
     srcChainId: '137',
-    srcChainTokenIn: polygonUsdcAddress,
+    srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
     dstChainId: '42161',
-    dstChainTokenOut: ethers.ZeroAddress,
+    dstChainTokenOut: EVM_NATIVE_TOKEN.address,
     dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,

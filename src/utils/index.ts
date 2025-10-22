@@ -2,10 +2,13 @@ import 'dotenv/config';
 import { JsonRpcProvider } from "ethers";
 import { VersionedTransaction } from "@solana/web3.js";
 
-export async function getJsonRpcProviders(rpcUrls: { polygonRpcUrl: string, arbRpcUrl: string, bnbRpcUrl: string }) {
+export async function getJsonRpcProviders(rpcUrls: { polygonRpcUrl: string, arbRpcUrl: string, bnbRpcUrl: string, baseRpcUrl?: string, tronRpcUrl?: string }) {
   let polygonProvider: JsonRpcProvider;
   let arbitrumProvider: JsonRpcProvider;
   let bnbProvider: JsonRpcProvider;
+  let baseProvider: JsonRpcProvider;
+  let tronProvider: JsonRpcProvider;
+
   try {
     console.log(`\nAttempting to connect to Polygon via: ${rpcUrls.polygonRpcUrl}`);
     polygonProvider = new JsonRpcProvider(rpcUrls.polygonRpcUrl);
@@ -13,12 +16,26 @@ export async function getJsonRpcProviders(rpcUrls: { polygonRpcUrl: string, arbR
     arbitrumProvider = new JsonRpcProvider(rpcUrls.arbRpcUrl);
     console.log(`\nAttempting to connect to BNB via: ${rpcUrls.bnbRpcUrl}`);
     bnbProvider = new JsonRpcProvider(rpcUrls.bnbRpcUrl);
+    console.log(`\nAttempting to connect to Base via: ${rpcUrls.baseRpcUrl}`);
+    baseProvider = new JsonRpcProvider(rpcUrls.baseRpcUrl);
+    console.log(`\nAttempting to connect to Tron via ${rpcUrls.tronRpcUrl}`);
+    tronProvider = new JsonRpcProvider(rpcUrls.tronRpcUrl);
+
     const polygonNetwork = await polygonProvider.getNetwork();
     console.log(`Polygon connection successful. (Network: ${polygonNetwork.name}, Chain ID: ${polygonNetwork.chainId})`);
     const arbitrumNetwork = await arbitrumProvider.getNetwork();
     console.log(`Arbitrum connection successful. (Network: ${arbitrumNetwork.name}, Chain ID: ${arbitrumNetwork.chainId})`);
-    const bnbNetwork = await arbitrumProvider.getNetwork();
-    console.log(`Arbitrum connection successful. (Network: ${bnbNetwork.name}, Chain ID: ${bnbNetwork.chainId})`);
+    const bnbNetwork = await bnbProvider.getNetwork();
+    console.log(`BNB connection successful. (Network: ${bnbNetwork.name}, Chain ID: ${bnbNetwork.chainId})`);
+    if (rpcUrls.baseRpcUrl) {
+      const baseNetwork = await baseProvider.getNetwork();
+      console.log(`Base connection successful. (Network: ${baseNetwork.name}, Chain ID: ${baseNetwork.chainId})`);
+    }
+    if(rpcUrls.tronRpcUrl) {
+      const tronNetwork = await tronProvider.getNetwork();
+      console.log(`Tron connection successful. (Network: ${tronNetwork.name}, Chain ID: ${tronNetwork.chainId})`);
+    }
+
   } catch (error) {
     console.error(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
     throw new Error("Could not connect to a Provider.");
@@ -27,7 +44,9 @@ export async function getJsonRpcProviders(rpcUrls: { polygonRpcUrl: string, arbR
   return {
     polygonProvider,
     arbitrumProvider,
-    bnbProvider
+    bnbProvider,
+    baseProvider,
+    tronProvider
   }
 }
 
@@ -39,6 +58,8 @@ export function getEnvConfig() {
   const arbRpcUrl = process.env.ARB_RPC_URL;
   const bnbRpcUrl = process.env.BNB_RPC_URL;
   const solRpcUrl = process.env.SOL_RPC_URL;
+  const baseRpcUrl = process.env.BASE_RPC_URL;
+  const tronRpcUrl = process.env.TRON_RPC_URL;
   const solPrivateKey = process.env.SOL_PK;
 
   let error = ""
@@ -61,6 +82,12 @@ export function getEnvConfig() {
   if (!solPrivateKey) {
     error += "\nSOL_PK not found in .env file.";
   }
+  if (!baseRpcUrl) {
+    error += "\nBASE_RPC_URL not found in .env file.";
+  }
+  if (!tronRpcUrl) {
+    error += "\nTRON_RPC_URL not found in .env file.";
+  }
 
   if (error !== "") {
     throw new Error(`Invalid configuration. ${error}`);
@@ -72,7 +99,9 @@ export function getEnvConfig() {
     polygonRpcUrl,
     arbRpcUrl,
     bnbRpcUrl,
-    solRpcUrl
+    baseRpcUrl,
+    solRpcUrl,
+    tronRpcUrl
   }
 }
 
@@ -101,4 +130,8 @@ export function updatePriorityFee(tx: VersionedTransaction, computeUnitPrice: nu
       computeUnitLimitData[i + computeBudgetOfset] = encodedLimit[i];
     }
   }
+}
+
+export function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

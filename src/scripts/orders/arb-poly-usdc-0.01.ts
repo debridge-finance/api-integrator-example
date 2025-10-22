@@ -5,44 +5,43 @@ import {
   Contract,
   formatUnits,
   TransactionResponse,
-  TransactionReceipt, 
+  TransactionReceipt,
   TransactionRequest
 } from "ethers";
 import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOrder';
 import { deBridgeOrderInput } from '../../types';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
+import { USDC } from '../../utils/tokens';
 
 async function main() {
   const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
 
-  const { polygonProvider } = await getJsonRpcProviders({ polygonRpcUrl, arbRpcUrl, bnbRpcUrl });
+  const { arbitrumProvider } = await getJsonRpcProviders({ polygonRpcUrl, arbRpcUrl, bnbRpcUrl });
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);
-  const signer = wallet.connect(polygonProvider);
+  const signer = wallet.connect(arbitrumProvider);
   const senderAddress = await signer.getAddress();
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const polygonUsdcAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-  const solUsdcAddress = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
   const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
-  const amountToSend = "0.2"; // The amount of USDC to send
-  const solUserAddress = "862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs"
+  const amountToSend = "0.01"; // The amount of USDC to send
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '137',
-    srcChainTokenIn: polygonUsdcAddress,
+    srcChainId: '42161',
+    srcChainTokenIn: USDC.ARBITRUM,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '7565164',
-    dstChainTokenOut: solUsdcAddress,
-    dstChainTokenOutRecipient: solUserAddress,
+    dstChainId: '137',
+    dstChainTokenOut: USDC.POLYGON,
+    dstChainTokenOutRecipient: "0xd004D98AacaDc037De4e5c324364a75CeD9C469a",
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
-    dstChainOrderAuthorityAddress: solUserAddress,
+    dstChainOrderAuthorityAddress: wallet.address,
+    referralCode: 32067 // Ranger referral code 
   };
 
   console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));
@@ -85,7 +84,7 @@ async function main() {
 
       console.log(`Approve transaction sent!`);
       console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
-      console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${approveTxResponse.hash}`);
+      console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${approveTxResponse.hash}`);
       console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
 
       // Wait for the approve transaction to be mined
@@ -120,7 +119,7 @@ async function main() {
 
     console.log(`Main transaction sent successfully!`);
     console.log(` --> Transaction Hash: ${txResponse.hash}`);
-    console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${txResponse.hash}`);
+    console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${txResponse.hash}`);
 
     console.log("\nWaiting for main transaction to be mined (awaiting 1 confirmation)...");
     const txReceipt: TransactionReceipt | null = await txResponse.wait();

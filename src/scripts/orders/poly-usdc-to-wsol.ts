@@ -2,17 +2,14 @@ import 'dotenv/config';
 import {
   ethers,
   Wallet,
-  Contract,
-  formatUnits,
   TransactionResponse,
-  TransactionReceipt,
+  TransactionReceipt, 
   TransactionRequest
 } from "ethers";
 import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOrder';
 import { deBridgeOrderInput } from '../../types';
-import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
-import { USDC } from '../../utils/tokens';
+import { SOL, USDC } from '../../utils/tokens';
 
 async function main() {
   const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
@@ -27,7 +24,8 @@ async function main() {
 
   // --- Prepare deBridge Order ---
   const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
-  const amountToSend = "5"; // The amount of USDC to send
+  const amountToSend = "0.2"; // The amount of USDC to send
+  const solUserAddress = "862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs"
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
@@ -35,12 +33,14 @@ async function main() {
     srcChainId: '137',
     srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '42161',
-    dstChainTokenOut: USDC.ARBITRUM,
-    dstChainTokenOutRecipient: "0xe2Dc0A3dEb815f54D32Fa6e9835a906E0FBe4c4c",
+    dstChainId: '7565164',
+    dstChainTokenOut: SOL.wrappedSol,
+    dstChainTokenOutRecipient: solUserAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
-    dstChainOrderAuthorityAddress: wallet.address,
+    dstChainOrderAuthorityAddress: solUserAddress,
+    affiliateFeePercent: 0.1,
+    affiliateFeeRecipient: wallet.address,
   };
 
   console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));
@@ -59,54 +59,6 @@ async function main() {
   if (!spenderAddress) {
     throw new Error("Transaction request is missing the 'to' address (spender).");
   }
-
-  console.log(`\n--- Checking/Setting Token Approval ---`);
-  console.log(` Token to approve: ${orderInput.srcChainTokenIn} (Polygon USDC)`);
-  console.log(` Spender address: ${spenderAddress}`);
-  console.log(` Amount required: ${formatUnits(amountInAtomicUnit, usdcDecimals)} USDC`);
-
-  // Create a contract instance for the token, connected to the signer
-  const tokenContract = new Contract(orderInput.srcChainTokenIn, erc20Abi, signer);
-  const requiredAmountBigInt = BigInt(order.estimation.srcChainTokenIn.amount);
-
-  try {
-    console.log(`Checking current allowance...`);
-    const currentAllowance: bigint = await tokenContract.allowance(senderAddress, spenderAddress);
-    console.log(` Current allowance: ${formatUnits(currentAllowance, usdcDecimals)} USDC`);
-
-    // Check if current allowance is less than the required amount
-    if (currentAllowance < requiredAmountBigInt) {
-      console.log("Allowance is insufficient. Sending approve transaction...");
-
-      // Send the approve transaction
-      const approveTxResponse: TransactionResponse = await tokenContract.approve(spenderAddress, requiredAmountBigInt);
-
-      console.log(`Approve transaction sent!`);
-      console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
-      console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${approveTxResponse.hash}`);
-      console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
-
-      // Wait for the approve transaction to be mined
-      const approveTxReceipt: TransactionReceipt | null = await approveTxResponse.wait();
-
-      if (approveTxReceipt && approveTxReceipt.status === 1) {
-        console.log("Approve transaction mined successfully! ✅");
-      } else {
-        // Throw an error if the approve transaction failed
-        throw new Error(`Approve transaction failed or receipt not found. Status: ${approveTxReceipt?.status}`);
-      }
-    } else {
-      console.log("Sufficient allowance already granted. Skipping approve transaction. 👍");
-    }
-
-  } catch (error) {
-    console.error("\n🚨 Error during token approval process:");
-    if (error instanceof Error) { console.error(` Message: ${error.message}`); }
-    else { console.error(" An unexpected error occurred:", error); }
-    // Stop execution if approval fails
-    throw new Error("Token approval failed. Cannot proceed with the bridge transaction.");
-  }
-
 
   // --- Send Main Bridge Transaction ---
   // This part only runs if the approval check/transaction above was successful

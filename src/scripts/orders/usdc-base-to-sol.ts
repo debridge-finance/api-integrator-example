@@ -12,6 +12,7 @@ import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOr
 import { deBridgeOrderInput } from '../../types';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
+import { SOL, USDC } from '../../utils/tokens';
 
 async function main() {
   const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
@@ -25,7 +26,6 @@ async function main() {
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const baseUsdcAddress = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
   const usdcDecimals = 6; // Base USDC has 6 decimals, as typical
   const amountToSend = "0.2"; // The amount of USDC to send
   const solUserAddress = "862oLANNqhdXyUCwLJPBqUHrScrqNR4yoGWGTxjZftKs"
@@ -34,10 +34,10 @@ async function main() {
 
   const orderInput: deBridgeOrderInput = {
     srcChainId: '8453',
-    srcChainTokenIn: baseUsdcAddress,
+    srcChainTokenIn: USDC.BASE,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
     dstChainId: '7565164',
-    dstChainTokenOut: "11111111111111111111111111111111", // Native Sol
+    dstChainTokenOut: SOL.nativeSol,
     dstChainTokenOutRecipient: solUserAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
@@ -84,7 +84,7 @@ async function main() {
 
       console.log(`Approve transaction sent!`);
       console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
-      console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${approveTxResponse.hash}`);
+      console.log(` --> View on Basescan: https://basescan.com/tx/${approveTxResponse.hash}`);
       console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
 
       // Wait for the approve transaction to be mined
@@ -119,7 +119,7 @@ async function main() {
 
     console.log(`Main transaction sent successfully!`);
     console.log(` --> Transaction Hash: ${txResponse.hash}`);
-    console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${txResponse.hash}`);
+    console.log(` --> View on Basescan: https://basescan.com/tx/${txResponse.hash}`);
 
     console.log("\nWaiting for main transaction to be mined (awaiting 1 confirmation)...");
     const txReceipt: TransactionReceipt | null = await txResponse.wait();

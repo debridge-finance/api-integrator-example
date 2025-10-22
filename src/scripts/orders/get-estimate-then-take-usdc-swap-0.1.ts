@@ -10,10 +10,17 @@ import {
 } from "ethers";
 import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOrder';
 import { deBridgeOrderInput } from '../../types';
+import { delay } from '../../utils';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { USDC } from '../../utils/tokens';
 
+/**
+ * This script demonstrates how to get an estimate, then create a deBridge order.
+ * 
+ * It demonstrates a flow when sender/authority addresses are not known at estimation time.
+ * (e.g., before users connect their wallet)
+ */
 async function main() {
   const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
 
@@ -26,24 +33,40 @@ async function main() {
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
-  const amountToSend = "5"; // The amount of USDC to send
+  const usdcDecimals = 6; // Polygon USDC typically has 6 decimals
+  const amountToSend = "0.1"; // The amount of USDC to send
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
-  const orderInput: deBridgeOrderInput = {
+  // Estimate mode - no authority addresses
+  const estimateInput: deBridgeOrderInput = {
     srcChainId: '137',
     srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '42161',
-    dstChainTokenOut: USDC.ARBITRUM,
-    dstChainTokenOutRecipient: "0xe2Dc0A3dEb815f54D32Fa6e9835a906E0FBe4c4c",
-    account: senderAddress,
-    srcChainOrderAuthorityAddress: wallet.address,
-    dstChainOrderAuthorityAddress: wallet.address,
+    dstChainId: '56',
+    dstChainTokenOut: USDC.BNB,
+    dstChainTokenOutRecipient: wallet.address,
+    account: wallet.address
   };
 
-  console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));
+  console.log("\nGetting deBridge order estimate:", JSON.stringify(estimateInput, null, 2));
+  const estimate = await createDebridgeBridgeOrder(estimateInput);
+
+  if (!estimate || !estimate.estimation) {
+    throw new Error("No estimation from createDebridgeBridgeOrder");
+  }
+
+  console.log("\nTransaction estimation:", estimate.estimation);
+
+  console.log("\nWaiting 1 minute");
+  await delay(60 * 1000);
+
+  const orderInput: deBridgeOrderInput = {
+    ...estimateInput,
+    srcChainOrderAuthorityAddress: wallet.address,
+    dstChainOrderAuthorityAddress: wallet.address
+  }
+
   const order = await createDebridgeBridgeOrder(orderInput);
 
   if (!order || !order.tx || !order.tx.to || !order.tx.data) {
@@ -61,12 +84,12 @@ async function main() {
   }
 
   console.log(`\n--- Checking/Setting Token Approval ---`);
-  console.log(` Token to approve: ${orderInput.srcChainTokenIn} (Polygon USDC)`);
+  console.log(` Token to approve: ${estimateInput.srcChainTokenIn} (Polygon USDC)`);
   console.log(` Spender address: ${spenderAddress}`);
   console.log(` Amount required: ${formatUnits(amountInAtomicUnit, usdcDecimals)} USDC`);
 
   // Create a contract instance for the token, connected to the signer
-  const tokenContract = new Contract(orderInput.srcChainTokenIn, erc20Abi, signer);
+  const tokenContract = new Contract(estimateInput.srcChainTokenIn, erc20Abi, signer);
   const requiredAmountBigInt = BigInt(order.estimation.srcChainTokenIn.amount);
 
   try {
@@ -106,7 +129,6 @@ async function main() {
     // Stop execution if approval fails
     throw new Error("Token approval failed. Cannot proceed with the bridge transaction.");
   }
-
 
   // --- Send Main Bridge Transaction ---
   // This part only runs if the approval check/transaction above was successful
