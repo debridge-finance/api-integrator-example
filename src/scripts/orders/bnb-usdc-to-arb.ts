@@ -6,10 +6,10 @@ import {
   formatUnits,
   TransactionResponse,
   TransactionReceipt,
-  TransactionRequest
+  TransactionRequest 
 } from "ethers";
 import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOrder';
-import { deBridgeOrderInput } from '../../types';
+import { deBridgeOrderInput } from '../../types'; 
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { USDC } from '../../utils/tokens';
@@ -18,37 +18,40 @@ import { CHAIN_IDS } from '../../utils/chains';
 async function main() {
   const { privateKey } = getEnvConfig();
 
-  const { polygonProvider } = await getJsonRpcProviders();
+  const { bnbProvider } = await getJsonRpcProviders();
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);
-  const signer = wallet.connect(polygonProvider);
+  const signer = wallet.connect(bnbProvider);
   const senderAddress = await signer.getAddress();
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
-  const amountToSend = "5"; // The amount of USDC to send
+  const usdcDecimals = 18; // BNB USDC has 18 decimals
+  const amountToSend = "0.01"; // The amount of USDC to send
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: CHAIN_IDS.Polygon.toString(),
-    srcChainTokenIn: USDC.POLYGON,
+    srcChainId: CHAIN_IDS.BNB.toString(),
+    srcChainTokenIn: USDC.BNB,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
+    dstChainTokenOutAmount: "auto",
     dstChainId: CHAIN_IDS.Arbitrum.toString(),
     dstChainTokenOut: USDC.ARBITRUM,
-    dstChainTokenOutRecipient: "0xe2Dc0A3dEb815f54D32Fa6e9835a906E0FBe4c4c",
-    account: senderAddress,
+    dstChainTokenOutRecipient: wallet.address,
+    account: wallet.address,
     srcChainOrderAuthorityAddress: wallet.address,
     dstChainOrderAuthorityAddress: wallet.address,
+    referralCode: 31805 // DevRel's referral code
+    // ... Other optional parameters
   };
 
   console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));
   const order = await createDebridgeBridgeOrder(orderInput);
 
   if (!order || !order.tx || !order.tx.to || !order.tx.data) {
-    throw new Error("Invalid transaction request object from createDebridgeBridgeOrder.");
+      throw new Error("Invalid transaction request object from createDebridgeBridgeOrder.");
   }
 
   console.log("\nOrder Estimation:", order.estimation);
@@ -71,41 +74,41 @@ async function main() {
   const requiredAmountBigInt = BigInt(order.estimation.srcChainTokenIn.amount);
 
   try {
-    console.log(`Checking current allowance...`);
-    const currentAllowance: bigint = await tokenContract.allowance(senderAddress, spenderAddress);
-    console.log(` Current allowance: ${formatUnits(currentAllowance, usdcDecimals)} USDC`);
+      console.log(`Checking current allowance...`);
+      const currentAllowance: bigint = await tokenContract.allowance(senderAddress, spenderAddress);
+      console.log(` Current allowance: ${formatUnits(currentAllowance, usdcDecimals)} USDC`);
 
-    // Check if current allowance is less than the required amount
-    if (currentAllowance < requiredAmountBigInt) {
-      console.log("Allowance is insufficient. Sending approve transaction...");
+      // Check if current allowance is less than the required amount
+      if (currentAllowance < requiredAmountBigInt) {
+          console.log("Allowance is insufficient. Sending approve transaction...");
 
-      // Send the approve transaction
-      const approveTxResponse: TransactionResponse = await tokenContract.approve(spenderAddress, requiredAmountBigInt);
+          // Send the approve transaction
+          const approveTxResponse: TransactionResponse = await tokenContract.approve(spenderAddress, requiredAmountBigInt);
 
-      console.log(`Approve transaction sent!`);
-      console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
-      console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${approveTxResponse.hash}`);
-      console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
+          console.log(`Approve transaction sent!`);
+          console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
+          console.log(` --> View on BscScan: https://bscscan.com/tx/${approveTxResponse.hash}`);
+          console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
 
-      // Wait for the approve transaction to be mined
-      const approveTxReceipt: TransactionReceipt | null = await approveTxResponse.wait();
+          // Wait for the approve transaction to be mined
+          const approveTxReceipt: TransactionReceipt | null = await approveTxResponse.wait();
 
-      if (approveTxReceipt && approveTxReceipt.status === 1) {
-        console.log("Approve transaction mined successfully! ✅");
+          if (approveTxReceipt && approveTxReceipt.status === 1) {
+              console.log("Approve transaction mined successfully! ✅");
+          } else {
+              // Throw an error if the approve transaction failed
+              throw new Error(`Approve transaction failed or receipt not found. Status: ${approveTxReceipt?.status}`);
+          }
       } else {
-        // Throw an error if the approve transaction failed
-        throw new Error(`Approve transaction failed or receipt not found. Status: ${approveTxReceipt?.status}`);
+          console.log("Sufficient allowance already granted. Skipping approve transaction. 👍");
       }
-    } else {
-      console.log("Sufficient allowance already granted. Skipping approve transaction. 👍");
-    }
 
   } catch (error) {
-    console.error("\n🚨 Error during token approval process:");
-    if (error instanceof Error) { console.error(` Message: ${error.message}`); }
-    else { console.error(" An unexpected error occurred:", error); }
-    // Stop execution if approval fails
-    throw new Error("Token approval failed. Cannot proceed with the bridge transaction.");
+      console.error("\n🚨 Error during token approval process:");
+      if (error instanceof Error) { console.error(` Message: ${error.message}`); }
+      else { console.error(" An unexpected error occurred:", error); }
+      // Stop execution if approval fails
+      throw new Error("Token approval failed. Cannot proceed with the bridge transaction.");
   }
 
 
@@ -119,19 +122,19 @@ async function main() {
 
     console.log(`Main transaction sent successfully!`);
     console.log(` --> Transaction Hash: ${txResponse.hash}`);
-    console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${txResponse.hash}`);
+    console.log(` --> View on BscScan: https://bscscan.com/tx/${txResponse.hash}`);
 
     console.log("\nWaiting for main transaction to be mined (awaiting 1 confirmation)...");
     const txReceipt: TransactionReceipt | null = await txResponse.wait();
 
     if (txReceipt) {
-      console.log("\nMain transaction mined successfully!");
-      console.log(` Status: ${txReceipt.status === 1 ? '✅ Success' : '❌ Failed'}`);
-      console.log(` Block number: ${txReceipt.blockNumber}`);
-      console.log(` Gas used: ${txReceipt.gasUsed.toString()}`);
+        console.log("\nMain transaction mined successfully!");
+        console.log(` Status: ${txReceipt.status === 1 ? '✅ Success' : '❌ Failed'}`);
+        console.log(` Block number: ${txReceipt.blockNumber}`);
+        console.log(` Gas used: ${txReceipt.gasUsed.toString()}`);
     } else {
-      console.error("Main transaction receipt was null. Transaction might have been dropped or replaced.");
-      console.error("Check the explorer link above for the final status of the hash:", txResponse.hash);
+        console.error("Main transaction receipt was null. Transaction might have been dropped or replaced.");
+        console.error("Check the explorer link above for the final status of the hash:", txResponse.hash);
     }
 
   } catch (error) {
@@ -149,7 +152,7 @@ async function main() {
 main().catch((error) => {
   // Avoid double-logging errors already caught and re-thrown inside main
   if (!(error instanceof Error && error.message.includes("Token approval failed"))) {
-    console.error("\n🚨 FATAL ERROR in script execution:", error);
+      console.error("\n🚨 FATAL ERROR in script execution:", error);
   }
-  process.exitCode = 1;
+  process.exitCode = 1; 
 });

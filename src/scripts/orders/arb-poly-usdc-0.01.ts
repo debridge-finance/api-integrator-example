@@ -18,27 +18,27 @@ import { CHAIN_IDS } from '../../utils/chains';
 async function main() {
   const { privateKey } = getEnvConfig();
 
-  const { polygonProvider } = await getJsonRpcProviders();
+  const { arbitrumProvider } = await getJsonRpcProviders();
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);
-  const signer = wallet.connect(polygonProvider);
+  const signer = wallet.connect(arbitrumProvider);
   const senderAddress = await signer.getAddress();
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
   const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
-  const amountToSend = "5"; // The amount of USDC to send
+  const amountToSend = "0.01"; // The amount of USDC to send
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: CHAIN_IDS.Polygon.toString(),
-    srcChainTokenIn: USDC.POLYGON,
+    srcChainId: CHAIN_IDS.Arbitrum.toString(),
+    srcChainTokenIn: USDC.ARBITRUM,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: CHAIN_IDS.Arbitrum.toString(),
-    dstChainTokenOut: USDC.ARBITRUM,
-    dstChainTokenOutRecipient: "0xe2Dc0A3dEb815f54D32Fa6e9835a906E0FBe4c4c",
+    dstChainId: CHAIN_IDS.Polygon.toString(),
+    dstChainTokenOut: USDC.POLYGON,
+    dstChainTokenOutRecipient: "0xd004D98AacaDc037De4e5c324364a75CeD9C469a",
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
     dstChainOrderAuthorityAddress: wallet.address,
@@ -84,7 +84,7 @@ async function main() {
 
       console.log(`Approve transaction sent!`);
       console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
-      console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${approveTxResponse.hash}`);
+      console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${approveTxResponse.hash}`);
       console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
 
       // Wait for the approve transaction to be mined
@@ -119,7 +119,7 @@ async function main() {
 
     console.log(`Main transaction sent successfully!`);
     console.log(` --> Transaction Hash: ${txResponse.hash}`);
-    console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${txResponse.hash}`);
+    console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${txResponse.hash}`);
 
     console.log("\nWaiting for main transaction to be mined (awaiting 1 confirmation)...");
     const txReceipt: TransactionReceipt | null = await txResponse.wait();

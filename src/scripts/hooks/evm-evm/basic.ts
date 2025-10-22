@@ -2,24 +2,24 @@ import 'dotenv/config';
 import {
   ethers,
   Wallet,
-  JsonRpcProvider,
   Contract,
   formatUnits,
-
   TransactionResponse,
   TransactionReceipt,
-  TransactionRequest,
-  Interface
+  TransactionRequest
 } from "ethers";
 import { deBridgeHookInput } from '../../../types';
 import { createDebridgeBridgeHook } from '../../../utils/deBridge/createDeBridgeHook';
 import { erc20Abi } from '../../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../../utils';
+import { USDC } from '../../../utils/tokens';
+import { generateAaveSupplyCalldata } from '../../../utils/hooks';
+import { CHAIN_IDS } from '../../../utils/chains';
 
 async function main() {
-  const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
+  const { privateKey } = getEnvConfig();
 
-  const { polygonProvider, arbitrumProvider } = await getJsonRpcProviders({ polygonRpcUrl: polygonRpcUrl, arbRpcUrl: arbRpcUrl, bnbRpcUrl: bnbRpcUrl });
+  const { polygonProvider, arbitrumProvider } = await getJsonRpcProviders();
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);
@@ -29,21 +29,19 @@ async function main() {
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const polygonUsdcAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-  const arbUsdcAddress = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
   const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
   const amountToSend = "2"; // The amount of USDC to send
 
   const aavePoolPolygonAddress = "0x794a61358D6845594F94dc1DB02A252b5b4814aD";
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
-  const hookCalldata = await generateAaveSupplyCalldata();
+  const hookCalldata = await generateAaveSupplyCalldata(senderAddress);
   const hookInput: deBridgeHookInput = {
-    srcChainId: '42161',
-    srcChainTokenIn: arbUsdcAddress,
+    srcChainId: CHAIN_IDS.Arbitrum.toString(),
+    srcChainTokenIn: USDC.ARBITRUM,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '137',
-    dstChainTokenOut: polygonUsdcAddress,
+    dstChainId: CHAIN_IDS.Polygon.toString(),
+    dstChainTokenOut: USDC.POLYGON,
     dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
@@ -100,7 +98,7 @@ async function main() {
 
       console.log(`Approve transaction sent!`);
       console.log(` --> Transaction Hash: ${approveTxResponse.hash}`);
-      console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${approveTxResponse.hash}`);
+      console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${approveTxResponse.hash}`);
       console.log("Waiting for approve transaction to be mined (awaiting 1 confirmation)...");
 
       // Wait for the approve transaction to be mined
@@ -135,7 +133,7 @@ async function main() {
 
     console.log(`Main transaction sent successfully!`);
     console.log(` --> Transaction Hash: ${txResponse.hash}`);
-    console.log(` --> View on Polygonscan: https://polygonscan.com/tx/${txResponse.hash}`);
+    console.log(` --> View on Arbiscan: https://arbiscan.io/tx/${txResponse.hash}`);
 
     console.log("\nWaiting for main transaction to be mined (awaiting 1 confirmation)...");
     const txReceipt: TransactionReceipt | null = await txResponse.wait();
@@ -160,43 +158,6 @@ async function main() {
   console.log("\n--- Script finished ---");
 
 } // end main function
-
-async function generateAaveSupplyCalldata() {
-  const config = getEnvConfig()
-  const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = config;
-  const { polygonProvider } = await getJsonRpcProviders({ polygonRpcUrl, arbRpcUrl, bnbRpcUrl });
-
-  // --- Wallet and Signer Setup ---
-  const wallet = new Wallet(privateKey);
-  const signer = wallet.connect(polygonProvider);
-  const senderAddress = await signer.getAddress();
-  console.log(`\nWallet Address (Signer): ${senderAddress}`);
-
-  const polygonUsdcAddress = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
-  const usdcDecimals = 6;
-
-  // --- Define arguments for the supply function ---
-  const assetAddress = polygonUsdcAddress; // The address of the asset to supply (e.g., USDC on Polygon)
-  const supplyAmount = ethers.parseUnits("1", usdcDecimals); // The amount to supply in atomic units
-  const onBehalfOfAddress = senderAddress; // The address on whose behalf to supply (can be the same as the sender)
-  const referralCode = 0; // Aave referral code (optional, can be 0)
-
-  const aavePoolAbi: Interface = new ethers.Interface(["function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) public"]);
-
-  // --- Create the calldata ---
-  const calldata = aavePoolAbi.encodeFunctionData("supply", [
-    assetAddress,
-    supplyAmount,
-    onBehalfOfAddress,
-    referralCode
-  ]);
-
-  console.log("\n--- Aave Pool Supply Calldata ---");
-  console.log("Target Contract Address:", "0x794a61358D6845594F94dc1DB02A252b5b4814aD");
-  console.log("Calldata:", calldata);
-
-  return calldata;
-}
 
 // Execute main function and catch any top-level errors
 main().catch((error) => {

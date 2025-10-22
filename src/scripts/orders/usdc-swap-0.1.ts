@@ -12,11 +12,13 @@ import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOr
 import { deBridgeOrderInput } from '../../types';
 import { erc20Abi } from '../../constants';
 import { getEnvConfig, getJsonRpcProviders } from '../../utils';
+import { USDC } from '../../utils/tokens';
+import { CHAIN_IDS } from '../../utils/chains';
 
 async function main() {
-  const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
+  const { privateKey } = getEnvConfig();
 
-  const { polygonProvider } = await getJsonRpcProviders({ polygonRpcUrl, arbRpcUrl, bnbRpcUrl });
+  const { polygonProvider } = await getJsonRpcProviders();
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);
@@ -25,19 +27,17 @@ async function main() {
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const polygonUsdcAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-  const bnbUsdcAddress = '0x8ac76a51cc950d9822D68b83fE1Ad97B32Cd580d';
   const usdcDecimals = 6; // Polygon USDC typically has 6 decimals
   const amountToSend = "0.1"; // The amount of USDC to send
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
 
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '137',
-    srcChainTokenIn: polygonUsdcAddress,
+    srcChainId: CHAIN_IDS.Polygon.toString(),
+    srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '56',
-    dstChainTokenOut: bnbUsdcAddress,
+    dstChainId: CHAIN_IDS.BNB.toString(),
+    dstChainTokenOut: USDC.BNB,
     dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,

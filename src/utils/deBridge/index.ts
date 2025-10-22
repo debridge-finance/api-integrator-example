@@ -39,7 +39,3 @@ export async function getOrderStatusByOrderId(orderId: string) {
 
   return data;
 }
-
-export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}

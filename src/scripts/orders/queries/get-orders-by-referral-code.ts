@@ -1,3 +1,4 @@
+import { Reader } from "ethers/lib.commonjs/abi/coders/abstract-coder";
 import { post } from "../../../utils/http";
 
 async function main() {
@@ -10,13 +11,16 @@ async function main() {
     orderStates: ['Fulfilled', 'SentUnlock', 'ClaimedUnlock' ],
     externalCallStates: ['NoExtCall'],
     skip: 0,
-    take: 3,
-    referralCode: "31805",
+    take: 20,
+    referralCode: "30830",
+    blockTimestampFrom: 1758806388
   };
 
   const data = await post(URL, requestBody);
 
-  console.log(data);
+  for (const order of data.orders) {
+    console.log(`OrderId: ${order.orderId.stringValue}`);
+  }
 }
 
 main().catch((err) => {

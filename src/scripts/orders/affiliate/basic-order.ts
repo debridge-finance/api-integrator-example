@@ -1,4 +1,5 @@
 import 'dotenv/config';
+
 import {
   ethers,
   Wallet,
@@ -8,12 +9,13 @@ import {
   TransactionReceipt,
   TransactionRequest
 } from "ethers";
-import { createDebridgeBridgeOrder } from '../../utils/deBridge/createDeBridgeOrder';
-import { deBridgeOrderInput } from '../../types';
-import { erc20Abi } from '../../constants';
-import { getEnvConfig, getJsonRpcProviders } from '../../utils';
-import { USDC } from '../../utils/tokens';
-import { CHAIN_IDS } from '../../utils/chains';
+
+import { createDebridgeBridgeOrder } from '../../../utils/deBridge/createDeBridgeOrder';
+import { deBridgeOrderInput } from '../../../types';
+import { erc20Abi } from '../../../constants';
+import { getEnvConfig, getJsonRpcProviders } from '../../../utils';
+import { USDC } from '../../../utils/tokens';
+import { CHAIN_IDS } from '../../../utils/chains';
 
 async function main() {
   const { privateKey } = getEnvConfig();
@@ -27,21 +29,25 @@ async function main() {
   console.log(`\nWallet Address (Signer): ${senderAddress}`);
 
   // --- Prepare deBridge Order ---
-  const usdcDecimals = 6; // Polygon and Arbitrum USDC have 6 decimals, as typical
-  const amountToSend = "5"; // The amount of USDC to send
+  const usdcDecimals = 6; // Polygon USDC typically has 6 decimals
+  const amountToSend = "0.1"; // The amount of USDC to send
 
   const amountInAtomicUnit = ethers.parseUnits(amountToSend, usdcDecimals);
+
+  const affiliateFeeRecipient = signer.address;  // Set affiliate fee recipient to the sender's address
 
   const orderInput: deBridgeOrderInput = {
     srcChainId: CHAIN_IDS.Polygon.toString(),
     srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: CHAIN_IDS.Arbitrum.toString(),
-    dstChainTokenOut: USDC.ARBITRUM,
-    dstChainTokenOutRecipient: "0xe2Dc0A3dEb815f54D32Fa6e9835a906E0FBe4c4c",
+    dstChainId: CHAIN_IDS.BNB.toString(),
+    dstChainTokenOut: USDC.BNB,
+    dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
     dstChainOrderAuthorityAddress: wallet.address,
+    affiliateFeePercent: 10,
+    affiliateFeeRecipient: affiliateFeeRecipient
   };
 
   console.log("\nCreating deBridge order with input:", JSON.stringify(orderInput, null, 2));

@@ -17,6 +17,8 @@ import {
   InterfaceAbi,
   JsonRpcProvider
 } from "ethers";
+import { USDC } from '../../utils/tokens';
+import { CHAIN_IDS } from '../../utils/chains';
 
 // API endpoint for deBridge operations
 export const DEBRIDGE_API = "https://dln.debridge.finance/v1.0";
@@ -228,8 +230,6 @@ async function main() {
   console.log(`\nSigner address: ${senderAddress}`);
 
   // Prepare token addresses, decimals, and amount
-  const polygonUsdcAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-  const arbUsdcAddress = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
   const usdcDecimals = 6;
   const amountToSend = "0.1";
 
@@ -238,11 +238,11 @@ async function main() {
 
   // Construct order parameters
   const orderInput: deBridgeOrderInput = {
-    srcChainId: '137',
-    srcChainTokenIn: polygonUsdcAddress,
+    srcChainId: CHAIN_IDS.Polygon.toString(),
+    srcChainTokenIn: USDC.POLYGON,
     srcChainTokenInAmount: amountInAtomicUnit.toString(),
-    dstChainId: '42161',
-    dstChainTokenOut: arbUsdcAddress,
+    dstChainId: CHAIN_IDS.Arbitrum.toString(),
+    dstChainTokenOut: USDC.ARBITRUM,
     dstChainTokenOutRecipient: senderAddress,
     account: senderAddress,
     srcChainOrderAuthorityAddress: wallet.address,
@@ -325,10 +325,8 @@ async function main() {
     console.log("\nSubmitting bridge transaction...");
     const txResponse: TransactionResponse =
       await signer.sendTransaction(transactionRequest);
-    console.log(` Bridge tx hash: ${txResponse.hash}`);
-    console.log(
-      ` Explorer: https://polygonscan.com/tx/${txResponse.hash}`
-    );
+    console.log(`Bridge tx hash: ${txResponse.hash}`);
+    console.log(`Explorer: https://polygonscan.com/tx/${txResponse.hash}`);
 
     console.log(" Waiting for confirmation...");
     const txReceipt: TransactionReceipt | null = await txResponse.wait();
