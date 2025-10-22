@@ -56,7 +56,7 @@ export interface deBridgeQuoteResponse {
 }
 
 export interface deBridgeOrderInput {
-  accessToken?: string;
+  accessToken?: string; // Optional access token for API authentication
   srcChainId: string;
   srcChainTokenIn: string;
   srcChainTokenInAmount: string;
@@ -213,6 +213,7 @@ export type SameChainSwapInput = SameChainSwapEstimateInput & {
   tokenOutRecipient: string; // e.g. recipient address
   senderAddress?: string; // e.g. the sender's address
   srcChainPriorityLevel?: "normal" | "aggressive";
+  referralCode?: number; 
 }
 
 export type DeBridgeTransaction = {
