@@ -12,9 +12,9 @@ import { getEnvConfig, getJsonRpcProviders } from '../../utils';
 import { SOL, USDC } from '../../utils/tokens';
 
 async function main() {
-  const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
+  const { privateKey } = getEnvConfig();
 
-  const { polygonProvider } = await getJsonRpcProviders({ polygonRpcUrl, arbRpcUrl, bnbRpcUrl });
+  const { polygonProvider } = await getJsonRpcProviders();
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);

@@ -2,12 +2,13 @@ import 'dotenv/config';
 import { JsonRpcProvider } from "ethers";
 import { VersionedTransaction } from "@solana/web3.js";
 
-export async function getJsonRpcProviders(rpcUrls: { polygonRpcUrl: string, arbRpcUrl: string, bnbRpcUrl: string, baseRpcUrl?: string, tronRpcUrl?: string }) {
+export async function getJsonRpcProviders() {
   let polygonProvider: JsonRpcProvider;
   let arbitrumProvider: JsonRpcProvider;
   let bnbProvider: JsonRpcProvider;
   let baseProvider: JsonRpcProvider;
-  let tronProvider: JsonRpcProvider;
+
+  const rpcUrls = getEnvConfig();
 
   try {
     console.log(`\nAttempting to connect to Polygon via: ${rpcUrls.polygonRpcUrl}`);
@@ -18,22 +19,22 @@ export async function getJsonRpcProviders(rpcUrls: { polygonRpcUrl: string, arbR
     bnbProvider = new JsonRpcProvider(rpcUrls.bnbRpcUrl);
     console.log(`\nAttempting to connect to Base via: ${rpcUrls.baseRpcUrl}`);
     baseProvider = new JsonRpcProvider(rpcUrls.baseRpcUrl);
-    console.log(`\nAttempting to connect to Tron via ${rpcUrls.tronRpcUrl}`);
-    tronProvider = new JsonRpcProvider(rpcUrls.tronRpcUrl);
 
-    const polygonNetwork = await polygonProvider.getNetwork();
-    console.log(`Polygon connection successful. (Network: ${polygonNetwork.name}, Chain ID: ${polygonNetwork.chainId})`);
-    const arbitrumNetwork = await arbitrumProvider.getNetwork();
-    console.log(`Arbitrum connection successful. (Network: ${arbitrumNetwork.name}, Chain ID: ${arbitrumNetwork.chainId})`);
-    const bnbNetwork = await bnbProvider.getNetwork();
-    console.log(`BNB connection successful. (Network: ${bnbNetwork.name}, Chain ID: ${bnbNetwork.chainId})`);
+    if (rpcUrls.polygonRpcUrl) {
+      const polygonNetwork = await polygonProvider.getNetwork();
+      console.log(`Polygon connection successful. (Network: ${polygonNetwork.name}, Chain ID: ${polygonNetwork.chainId})`);
+    }
+    if (rpcUrls.arbRpcUrl) {
+      const arbitrumNetwork = await arbitrumProvider.getNetwork();
+      console.log(`Arbitrum connection successful. (Network: ${arbitrumNetwork.name}, Chain ID: ${arbitrumNetwork.chainId})`);
+    }
+    if (rpcUrls.bnbRpcUrl) {
+      const bnbNetwork = await bnbProvider.getNetwork();
+      console.log(`BNB connection successful. (Network: ${bnbNetwork.name}, Chain ID: ${bnbNetwork.chainId})`);
+    }
     if (rpcUrls.baseRpcUrl) {
       const baseNetwork = await baseProvider.getNetwork();
       console.log(`Base connection successful. (Network: ${baseNetwork.name}, Chain ID: ${baseNetwork.chainId})`);
-    }
-    if(rpcUrls.tronRpcUrl) {
-      const tronNetwork = await tronProvider.getNetwork();
-      console.log(`Tron connection successful. (Network: ${tronNetwork.name}, Chain ID: ${tronNetwork.chainId})`);
     }
 
   } catch (error) {
@@ -46,7 +47,6 @@ export async function getJsonRpcProviders(rpcUrls: { polygonRpcUrl: string, arbR
     arbitrumProvider,
     bnbProvider,
     baseProvider,
-    tronProvider
   }
 }
 
@@ -59,8 +59,10 @@ export function getEnvConfig() {
   const bnbRpcUrl = process.env.BNB_RPC_URL;
   const solRpcUrl = process.env.SOL_RPC_URL;
   const baseRpcUrl = process.env.BASE_RPC_URL;
-  const tronRpcUrl = process.env.TRON_RPC_URL;
   const solPrivateKey = process.env.SOL_PK;
+  const tronPrivateKey = process.env.TRON_PK;
+  const tronRpcUrl = process.env.TRON_RPC_URL;
+  const tronGridApiKey = process.env.TRONGRID_API_KEY;
 
   let error = ""
 
@@ -85,10 +87,12 @@ export function getEnvConfig() {
   if (!baseRpcUrl) {
     error += "\nBASE_RPC_URL not found in .env file.";
   }
+  if (!tronPrivateKey) {
+    error += "\nTRON_PK not found in .env file.";
+  }
   if (!tronRpcUrl) {
     error += "\nTRON_RPC_URL not found in .env file.";
   }
-
   if (error !== "") {
     throw new Error(`Invalid configuration. ${error}`);
   }
@@ -101,7 +105,9 @@ export function getEnvConfig() {
     bnbRpcUrl,
     baseRpcUrl,
     solRpcUrl,
-    tronRpcUrl
+    tronPrivateKey,
+    tronRpcUrl,
+    tronGridApiKey
   }
 }
 

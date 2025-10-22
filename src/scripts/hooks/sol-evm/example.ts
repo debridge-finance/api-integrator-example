@@ -1,22 +1,18 @@
 import 'dotenv/config';
-import {
-  ethers,
-  Wallet,
-  Interface
-} from "ethers";
+import { Wallet} from "ethers";
 import { deBridgeHookInput } from '../../../types';
 import { createDebridgeBridgeHook } from '../../../utils/deBridge/createDeBridgeHook';
 import bs58 from 'bs58';
-import { getEnvConfig, getJsonRpcProviders, updatePriorityFee } from '../../../utils';
-import { VersionedTransaction, Connection, Keypair } from "@solana/web3.js";
+import { getEnvConfig, getJsonRpcProviders } from '../../../utils';
+import { Connection, Keypair } from "@solana/web3.js";
 import { USDC } from '../../../utils/tokens';
 import { generateAaveSupplyCalldata } from '../../../utils/hooks';
 import { prepareSolanaTransaction } from '../../../utils/solana';
 
 async function main() {
-  const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl, solRpcUrl, solPrivateKey } = getEnvConfig();
+  const { privateKey, solRpcUrl, solPrivateKey } = getEnvConfig();
 
-  const { polygonProvider } = await getJsonRpcProviders({ polygonRpcUrl: polygonRpcUrl, arbRpcUrl: arbRpcUrl, bnbRpcUrl: bnbRpcUrl });
+  const { polygonProvider } = await getJsonRpcProviders();
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);

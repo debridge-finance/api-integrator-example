@@ -2,14 +2,11 @@ import 'dotenv/config';
 import {
   ethers,
   Wallet,
-  JsonRpcProvider,
   Contract,
   formatUnits,
-
   TransactionResponse,
   TransactionReceipt,
-  TransactionRequest,
-  Interface
+  TransactionRequest
 } from "ethers";
 import { deBridgeHookInput } from '../../../types';
 import { createDebridgeBridgeHook } from '../../../utils/deBridge/createDeBridgeHook';
@@ -19,9 +16,9 @@ import { USDC } from '../../../utils/tokens';
 import { generateAaveSupplyCalldata } from '../../../utils/hooks';
 
 async function main() {
-  const { privateKey, polygonRpcUrl, arbRpcUrl, bnbRpcUrl } = getEnvConfig();
+  const { privateKey } = getEnvConfig();
 
-  const { polygonProvider, arbitrumProvider } = await getJsonRpcProviders({ polygonRpcUrl: polygonRpcUrl, arbRpcUrl: arbRpcUrl, bnbRpcUrl: bnbRpcUrl });
+  const { polygonProvider, arbitrumProvider } = await getJsonRpcProviders();
 
   // --- Wallet and Signer Setup ---
   const wallet = new Wallet(privateKey);
