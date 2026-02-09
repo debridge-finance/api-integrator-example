@@ -18,7 +18,12 @@ export const USDC = {
 }
 
 export const USDT = {
-  TRON: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+  TRON: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+  MegaETH: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+}
+
+export const USDM = {
+  MegaETH: "0xfafddbb3fc7688494971a79cc65dca3ef82079e7"
 }
 
 export const TRX = {
