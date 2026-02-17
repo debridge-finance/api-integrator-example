@@ -7,6 +7,7 @@ export async function getJsonRpcProviders() {
   let arbitrumProvider: JsonRpcProvider;
   let bnbProvider: JsonRpcProvider;
   let baseProvider: JsonRpcProvider;
+  let megaEthProvider: JsonRpcProvider;
 
   const rpcUrls = getEnvConfig();
 
@@ -37,6 +38,13 @@ export async function getJsonRpcProviders() {
       console.log(`Base connection successful. (Network: ${baseNetwork.name}, Chain ID: ${baseNetwork.chainId})`);
     }
 
+    if (rpcUrls.megaEthRpcUrl) {
+      console.log(`\nAttempting to connect to MegaETH via: ${rpcUrls.megaEthRpcUrl}`);
+      megaEthProvider = new JsonRpcProvider(rpcUrls.megaEthRpcUrl);
+      const megaEthNetwork = await megaEthProvider.getNetwork();
+      console.log(`MegaETH connection successful. (Network: ${megaEthNetwork.name}, Chain ID: ${megaEthNetwork.chainId})`);
+    }
+
   } catch (error) {
     console.error(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
     throw new Error("Could not connect to a Provider.");
@@ -47,6 +55,7 @@ export async function getJsonRpcProviders() {
     arbitrumProvider,
     bnbProvider,
     baseProvider,
+    megaEthProvider
   }
 }
 
@@ -63,6 +72,7 @@ export function getEnvConfig() {
   const tronPrivateKey = process.env.TRON_PK;
   const tronRpcUrl = process.env.TRON_RPC_URL;
   const tronGridApiKey = process.env.TRONGRID_API_KEY;
+  const megaEthRpcUrl = process.env.MEGA_ETH_RPC_URL;
 
   let error = ""
 
@@ -93,6 +103,7 @@ export function getEnvConfig() {
   if (!tronRpcUrl) {
     error += "\nTRON_RPC_URL not found in .env file.";
   }
+  
   if (error !== "") {
     throw new Error(`Invalid configuration. ${error}`);
   }
@@ -107,7 +118,8 @@ export function getEnvConfig() {
     solRpcUrl,
     tronPrivateKey,
     tronRpcUrl,
-    tronGridApiKey
+    tronGridApiKey,
+    megaEthRpcUrl
   }
 }
 

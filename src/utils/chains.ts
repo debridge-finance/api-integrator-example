@@ -42,4 +42,5 @@ export const CHAIN_IDS = {
   TRON: 100000026,
   Sei: 100000027,
   Plasma: 100000028,
+  MegaETH: 100000031
 }
