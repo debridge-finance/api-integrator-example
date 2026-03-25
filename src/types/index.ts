@@ -80,7 +80,7 @@ export interface deBridgeOrderInput {
   dstChainOrderAuthorityAddress?: string;
   prependOperatingExpenses?: boolean;
   deBridgeApp?: string;
-  enableEstimate?: boolean; // If true, the API will return an estimation of the amounts and fees without creating an actual order. 
+  enableEstimate?: boolean; // If true, the API will return a transaction costs estimate.
 }
 
 export interface deBridgeHookInput extends deBridgeOrderInput {
