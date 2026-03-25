@@ -80,6 +80,7 @@ export interface deBridgeOrderInput {
   dstChainOrderAuthorityAddress?: string;
   prependOperatingExpenses?: boolean;
   deBridgeApp?: string;
+  enableEstimate?: boolean; // If true, the API will return an estimation of the amounts and fees without creating an actual order. 
 }
 
 export interface deBridgeHookInput extends deBridgeOrderInput {
@@ -117,6 +118,14 @@ export interface deBridgeOrderResponse {
       dstChainTokenOut: string;
     };
   };
+  fixFee: string; // Fixed fee in src chain token, in smallest unit (e.g. wei for EVM chains, lamports for Solana)
+  estimatedTransactionFee?: {
+    total: string;
+    details: {
+      gasLimit: string;
+      gasPrice: string;
+    }
+  }
 }
 
 export interface deBridgeOrderIdsResponse {
