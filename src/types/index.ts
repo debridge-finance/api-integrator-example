@@ -81,17 +81,18 @@ export interface deBridgeOrderInput {
   prependOperatingExpenses?: boolean;
   deBridgeApp?: string;
   enableEstimate?: boolean; // If true, the API will return a transaction costs estimate.
+  skipSolanaRecipientValidation?: boolean; // If true, the API will skip validation of Solana recipient address format. Use with caution.
 }
 
 export interface deBridgeHookInput extends deBridgeOrderInput {
   dlnHook: {
-    type: "evm_transaction_call" // enum, fill it in later
+    type: "evm_transaction_call"; // enum, fill it in later
     data: {
-      "to": string,
-      "calldata": string,
-      "gas": number
-    }
-  }
+      to: string;
+      calldata: string;
+      gas: number;
+    };
+  };
 }
 
 export interface deBridgeOrderResponse {
@@ -124,8 +125,8 @@ export interface deBridgeOrderResponse {
     details: {
       gasLimit: string;
       gasPrice: string;
-    }
-  }
+    };
+  };
 }
 
 export interface deBridgeOrderIdsResponse {
@@ -137,14 +138,14 @@ export interface deBridgeOrderIdsResponse {
 export interface deBridgeOrderStatusResponse {
   orderId: string;
   status:
-  | "None"
-  | "Created"
-  | "Fulfilled"
-  | "SentUnlock"
-  | "OrderCancelled"
-  | "SentOrderCancel"
-  | "ClaimedUnlock"
-  | "ClaimedOrderCancel";
+    | "None"
+    | "Created"
+    | "Fulfilled"
+    | "SentUnlock"
+    | "OrderCancelled"
+    | "SentOrderCancel"
+    | "ClaimedUnlock"
+    | "ClaimedOrderCancel";
   srcChainTxHash?: string;
   dstChainTxHash?: string;
   orderLink?: string;
@@ -194,17 +195,10 @@ export const getDebridgeTokensInfoSchema = z.object({
     ),
 
   /** Optional search term to filter tokens by name or symbol */
-  search: z
-    .string()
-    .optional()
-    .describe(
-      "Search term to filter tokens by name or symbol (e.g., 'USDC', 'Ethereum')",
-    ),
+  search: z.string().optional().describe("Search term to filter tokens by name or symbol (e.g., 'USDC', 'Ethereum')"),
 });
 
-export type GetDebridgeTokensInfoParams = z.infer<
-  typeof getDebridgeTokensInfoSchema
->;
+export type GetDebridgeTokensInfoParams = z.infer<typeof getDebridgeTokensInfoSchema>;
 
 export type SameChainSwapEstimateInput = {
   chainId: string; // e.g. '137' for Polygon
@@ -216,60 +210,60 @@ export type SameChainSwapEstimateInput = {
   affiliateFeeRecipient?: string; // e.g. address to receive fee
   senderAddress?: string; // e.g. the sender's address
   srcChainPriorityLevel?: "normal" | "aggressive";
-}
+};
 
 export type SameChainSwapInput = SameChainSwapEstimateInput & {
   tokenOutRecipient: string; // e.g. recipient address
   senderAddress?: string; // e.g. the sender's address
   srcChainPriorityLevel?: "normal" | "aggressive";
-  referralCode?: number; 
-}
+  referralCode?: number;
+};
 
 export type DeBridgeTransaction = {
-  data: string,
-  to?: string, // Only present for EVM chains
-  value?: string // Only present for EVM chains
-}
+  data: string;
+  to?: string; // Only present for EVM chains
+  value?: string; // Only present for EVM chains
+};
 
 export type DeBridgeSameChainSwapEstimate = {
   tokenIn: {
-    address: string,
-    name: string,
-    symbol: string,
-    decimals: number,
-    amount: string
-  },
+    address: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    amount: string;
+  };
   tokenOut: {
-    address: string,
-    name: string,
-    symbol: string,
-    decimals: number,
-    amount: string,
-    minAmount: string
-  },
-  slippage: number,
-  recommendedSlippage: number,
+    address: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    amount: string;
+    minAmount: string;
+  };
+  slippage: number;
+  recommendedSlippage: number;
   estimatedTransactionFee: {
-    total: string,
+    total: string;
     details: {
-      giveOrderState: string,
-      giveOrderWallet: string,
-      nonceMaster: string,
-      txFee: string,
-      priorityFee: string,
-      gasLimit: string,
-      gasPrice: string,
-      baseFee: string,
-      maxFeePerGas: string,
-      maxPriorityFeePerGas: string
-    }
-  },
-}
+      giveOrderState: string;
+      giveOrderWallet: string;
+      nonceMaster: string;
+      txFee: string;
+      priorityFee: string;
+      gasLimit: string;
+      gasPrice: string;
+      baseFee: string;
+      maxFeePerGas: string;
+      maxPriorityFeePerGas: string;
+    };
+  };
+};
 
 export type SameChainSwapResponse = DeBridgeSameChainSwapEstimate & {
-  tx: DeBridgeTransaction
-}
+  tx: DeBridgeTransaction;
+};
 
 export type SameChainSwapEstimateResponse = {
-  estimation: DeBridgeSameChainSwapEstimate
-}
+  estimation: DeBridgeSameChainSwapEstimate;
+};
