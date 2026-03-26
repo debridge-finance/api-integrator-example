@@ -14,9 +14,7 @@ import { deBridgeOrderInput, deBridgeOrderResponse } from "../../types";
  * @param params.account Sender's wallet address
  * @returns Bridge order details and transaction data
  */
-export async function createDebridgeBridgeOrder(
-  params: deBridgeOrderInput,
-): Promise<deBridgeOrderResponse> {
+export async function createDebridgeBridgeOrder(params: deBridgeOrderInput): Promise<deBridgeOrderResponse> {
   if (params.srcChainId === params.dstChainId) {
     throw new Error("Source and destination chains must be different");
   }
@@ -34,11 +32,15 @@ export async function createDebridgeBridgeOrder(
     srcChainRefundAddress: params.account, // Always use sender's address
     dstChainOrderAuthorityAddress: params.dstChainOrderAuthorityAddress || params.dstChainTokenOutRecipient, // Recipient's address as fallback
     referralCode: params.referralCode ? params.referralCode.toString() : "31805", // Damir's work address referral code
-    // deBridgeApp: "", 
-    prependOperatingExpenses: "true", // Always true
+    // deBridgeApp: "",
+    prependOperatingExpenses: params.prependOperatingExpenses ? "true" : "false", // Advised to keep it true, to avoid transaction failures and smoother user experience by keeping the rates easily transparent
     // NOTE: Both the affiliateFeePercent and affiliateFeeRecipient must be set if you're using one
     affiliateFeePercent: (params.affiliateFeePercent || 0).toString(),
-    affiliateFeeRecipient: params.affiliateFeeRecipient ? params.affiliateFeeRecipient : "0x55A8f5cce1d53D9Ff84EC0962882b447E5914dB8" // Damir's work address
+    affiliateFeeRecipient: params.affiliateFeeRecipient
+      ? params.affiliateFeeRecipient
+      : "0x55A8f5cce1d53D9Ff84EC0962882b447E5914dB8", // Damir's work address
+    skipSolanaRecipientValidation: params.skipSolanaRecipientValidation ? "true" : "false",
+    enableEstimate: params.enableEstimate ? "true" : "false",
   });
 
   if (queryParams.get("affiliateFeePercent") === "0" || !queryParams.get("affiliateFeeRecipient")) {
@@ -46,17 +48,13 @@ export async function createDebridgeBridgeOrder(
     queryParams.delete("affiliateFeeRecipient");
   }
 
-  console.log("URL**********",`${DEBRIDGE_API}/dln/order/create-tx?${queryParams}`);
+  console.log("URL**********", `${DEBRIDGE_API}/dln/order/create-tx?${queryParams}`);
 
-  const response = await fetch(
-    `${DEBRIDGE_API}/dln/order/create-tx?${queryParams}`,
-  );
+  const response = await fetch(`${DEBRIDGE_API}/dln/order/create-tx?${queryParams}`);
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `Failed to create bridge order: ${response.statusText}. ${errorText}`,
-    );
+    throw new Error(`Failed to create bridge order: ${response.statusText}. ${errorText}`);
   }
 
   const data = await response.json();
