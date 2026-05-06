@@ -21,6 +21,7 @@ export const CHAIN_IDS = {
   Optimism: 10,
   Base: 8453,
   Story: 100000013,
+  Cronos: 100000019,
   HyperEVM: 100000022,
   Flow: 100000009,
   Plume: 100000024,
