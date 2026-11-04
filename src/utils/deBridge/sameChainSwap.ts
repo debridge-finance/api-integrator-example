@@ -25,6 +25,12 @@ export async function createDeBridgeSameChainSwap(
     queryParams.delete("affiliateFeeRecipient");
   }
 
+  // Solana only: which Solana transaction format the API should build (0 = v0, 1 = SIMD-0385 v1).
+  // Omitted => API default (v0). Ignored for EVM/Tron chains.
+  if (params.solanaTransactionVersion !== undefined) {
+    queryParams.set("solanaTransactionVersion", params.solanaTransactionVersion.toString());
+  }
+
   console.log("URL**********", `${DEBRIDGE_API}/chain/transaction?${queryParams}`);
 
   const response = await fetch(

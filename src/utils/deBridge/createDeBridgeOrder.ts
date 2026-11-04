@@ -12,6 +12,7 @@ import { deBridgeOrderInput, deBridgeOrderResponse } from "../../types";
  * @param params.dstChainTokenOut Token address on destination chain
  * @param params.dstChainTokenOutRecipient Recipient address on destination chain
  * @param params.account Sender's wallet address
+ * @param params.solanaTransactionVersion Solana source chain only: 0 (v0, default) or 1 (SIMD-0385 v1), see SolanaTransactionVersion
  * @returns Bridge order details and transaction data
  */
 export async function createDebridgeBridgeOrder(params: deBridgeOrderInput): Promise<deBridgeOrderResponse> {
@@ -46,6 +47,12 @@ export async function createDebridgeBridgeOrder(params: deBridgeOrderInput): Pro
   if (queryParams.get("affiliateFeePercent") === "0" || !queryParams.get("affiliateFeeRecipient")) {
     queryParams.delete("affiliateFeePercent");
     queryParams.delete("affiliateFeeRecipient");
+  }
+
+  // Solana source chain only: which Solana transaction format the API should build (0 = v0, 1 = SIMD-0385 v1).
+  // Omitted => API default (v0). Ignored for EVM/Tron source chains.
+  if (params.solanaTransactionVersion !== undefined) {
+    queryParams.set("solanaTransactionVersion", params.solanaTransactionVersion.toString());
   }
 
   console.log("URL**********", `${DEBRIDGE_API}/dln/order/create-tx?${queryParams}`);
