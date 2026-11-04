@@ -1,6 +1,17 @@
 import { z } from "zod";
 
 // DeBridge Types ref: https://dln.debridge.finance/v1.0/
+
+/**
+ * Solana transaction format returned by the API when the source chain is Solana
+ * (`solanaTransactionVersion` query parameter on /dln/order/create-tx and /chain/transaction).
+ *
+ * - 0: versioned transaction v0 with address lookup tables (API default when omitted). Max 1232 bytes.
+ * - 1: SIMD-0385 transaction v1: no lookup tables, every address inline, compute budget carried in the
+ *      message config (priority fee in lamports, CU limit, loaded-accounts-data limit) instead of
+ *      ComputeBudget instructions. Max 4096 bytes. Needs @solana/web3.js v3 (or @solana/kit) to sign.
+ */
+export type SolanaTransactionVersion = 0 | 1;
 export interface deBridgeChainInfo {
   chainId: string;
   originalChainId: string;
@@ -82,6 +93,7 @@ export interface deBridgeOrderInput {
   deBridgeApp?: string;
   enableEstimate?: boolean; // If true, the API will return a transaction costs estimate.
   skipSolanaRecipientValidation?: boolean; // If true, the API will skip validation of Solana recipient address format. Use with caution.
+  solanaTransactionVersion?: SolanaTransactionVersion; // Solana source chain only. Which transaction format the API should build (omit = v0).
 }
 
 export interface deBridgeHookInput extends deBridgeOrderInput {
@@ -217,6 +229,7 @@ export type SameChainSwapInput = SameChainSwapEstimateInput & {
   senderAddress?: string; // e.g. the sender's address
   srcChainPriorityLevel?: "normal" | "aggressive";
   referralCode?: number;
+  solanaTransactionVersion?: SolanaTransactionVersion; // Solana only. Which transaction format the API should build (omit = v0).
 };
 
 export type DeBridgeTransaction = {
